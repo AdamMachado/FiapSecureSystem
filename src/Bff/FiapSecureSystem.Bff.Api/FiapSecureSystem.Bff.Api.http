@@ -1,0 +1,6 @@
+@FiapSecureSystem.Bff.Api_HostAddress = http://localhost:5067
+
+GET {{FiapSecureSystem.Bff.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

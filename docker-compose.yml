@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: fiap-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  postgres-upload:
+    image: postgres:16
+    container_name: fiap-postgres-upload
+    environment:
+      POSTGRES_DB: fiap_secure_upload
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-upload-data:/var/lib/postgresql/data
+
+  postgres-processing:
+    image: postgres:16
+    container_name: fiap-postgres-processing
+    environment:
+      POSTGRES_DB: fiap_secure_processing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-processing-data:/var/lib/postgresql/data
+
+  postgres-report:
+    image: postgres:16
+    container_name: fiap-postgres-report
+    environment:
+      POSTGRES_DB: fiap_secure_report
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-report-data:/var/lib/postgresql/data
+
+  file-storage:
+    image: alpine
+    container_name: fiap-file-storage
+    command: sh -c "mkdir -p /data/uploads && tail -f /dev/null"
+    volumes:
+      - file-storage-data:/data/uploads
+
+volumes:
+  postgres-upload-data:
+  postgres-processing-data:
+  postgres-report-data:
+  file-storage-data:
+  
