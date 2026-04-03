@@ -1,28 +1,12 @@
 <Solution>
+  <Folder Name="/infa/" />
   <Folder Name="/src/" />
-  <Folder Name="/src/Bff/">
-    <Project Path="src/Bff/FiapSecureSystem.Bff.Api/FiapSecureSystem.Bff.Api.csproj" />
-  </Folder>
   <Folder Name="/src/Services/" />
-  <Folder Name="/src/Services/Processing/">
-    <Project Path="src/Services/Processing/FiapSecureSystem.Processing.Application/FiapSecureSystem.Processing.Application.csproj" />
-    <Project Path="src/Services/Processing/FiapSecureSystem.Processing.Domain/FiapSecureSystem.Processing.Domain.csproj" />
-    <Project Path="src/Services/Processing/FiapSecureSystem.Processing.Infrastructure/FiapSecureSystem.Processing.Infrastructure.csproj" />
-    <Project Path="src/Services/Processing/FiapSecureSystem.Processing.Worker/FiapSecureSystem.Processing.Worker.csproj" />
+  <Folder Name="/src/Services/UploadService/">
+    <Project Path="src/Services/UploadService/UploadService.Api/UploadService.Api/UploadService.Api.csproj" Id="77f94ffa-43d1-431b-8251-0cfb87fe39a5" />
+    <Project Path="src/Services/UploadService/UploadService.Application/UploadService.Application.csproj" Id="1a77e9d1-9673-400c-925c-c77c84b99fb2" />
+    <Project Path="src/Services/UploadService/UploadService.Domain/UploadService.Domain/UploadService.Domain.csproj" Id="e890ecdb-ce50-456c-a11d-aa0ff9787ff8" />
+    <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure/UploadService.Infrastructure.csproj" Id="ce9763dc-f120-483d-9ab9-77d05e5e1f65" />
   </Folder>
-  <Folder Name="/src/Services/Reporting/">
-    <Project Path="src/Services/Reporting/FiapSecureSystem.Reporting.Api/FiapSecureSystem.Reporting.Api.csproj" />
-    <Project Path="src/Services/Reporting/FiapSecureSystem.Reporting.Application/FiapSecureSystem.Reporting.Application.csproj" />
-    <Project Path="src/Services/Reporting/FiapSecureSystem.Reporting.Domain/FiapSecureSystem.Reporting.Domain.csproj" />
-    <Project Path="src/Services/Reporting/FiapSecureSystem.Reporting.Infrastructure/FiapSecureSystem.Reporting.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Services/UploadOrchestration/">
-    <Project Path="src/Services/UploadOrchestration/FiapSecureSystem.UploadOrchestration.Api/FiapSecureSystem.UploadOrchestration.Api.csproj" />
-    <Project Path="src/Services/UploadOrchestration/FiapSecureSystem.UploadOrchestration.Application/FiapSecureSystem.UploadOrchestration.Application.csproj" />
-    <Project Path="src/Services/UploadOrchestration/FiapSecureSystem.UploadOrchestration.Domain/FiapSecureSystem.UploadOrchestration.Domain.csproj" />
-    <Project Path="src/Services/UploadOrchestration/FiapSecureSystem.UploadOrchestration.Infrastructure/FiapSecureSystem.UploadOrchestration.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Web/">
-    <Project Path="src/Web/FiapSecureSystem.WebApp/FiapSecureSystem.WebApp.csproj" />
-  </Folder>
+  <Folder Name="/tests/" />
 </Solution>
