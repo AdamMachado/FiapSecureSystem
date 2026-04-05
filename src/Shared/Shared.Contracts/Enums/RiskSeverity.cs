@@ -1,6 +1,9 @@
-﻿namespace Shared.Kernel.Primitives;
+﻿namespace Shared.Contracts.Enums;
 
-public class Entity
+public enum RiskSeverity
 {
-
+    Low = 0,
+    Medium = 1,
+    High = 2,
+    Critical = 3
 }

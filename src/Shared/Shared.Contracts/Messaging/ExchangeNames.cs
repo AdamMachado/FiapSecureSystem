@@ -1,6 +1,7 @@
-﻿namespace Shared.Kernel.Primitives;
+﻿namespace Shared.Contracts.Messaging;
 
-public class Entity
+public static class ExchangeNames
 {
-
+    public const string Analysis = "analysis.exchange";
+    public const string Report = "report.exchange";
 }

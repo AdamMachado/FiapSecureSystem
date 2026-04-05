@@ -4,74 +4,13 @@
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/UploadService/">
-    <Project Path="src/Services/UploadService/UploadService.Api/UploadService.Api/UploadService.Api.csproj" Id="77f94ffa-43d1-431b-8251-0cfb87fe39a5" />
+    <Project Path="src/Services/UploadService/UploadService.Api/UploadService.Api.csproj" />
     <Project Path="src/Services/UploadService/UploadService.Application/UploadService.Application.csproj" Id="1a77e9d1-9673-400c-925c-c77c84b99fb2" />
-    <Project Path="src/Services/UploadService/UploadService.Domain/UploadService.Domain/UploadService.Domain.csproj" Id="e890ecdb-ce50-456c-a11d-aa0ff9787ff8" />
-    <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure/UploadService.Infrastructure.csproj" Id="ce9763dc-f120-483d-9ab9-77d05e5e1f65" />
+    <Project Path="src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj" />
+    <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Shared/" />
-  <Folder Name="/src/Shared/Shared.Contracts/" />
-  <Folder Name="/src/Shared/Shared.Contracts/Enums/">
-    <File Path="src/Shared/Shared.Contracts/Enums/ComponentType.cs" />
-    <File Path="src/Shared/Shared.Contracts/Enums/JobStatus.cs" />
-    <File Path="src/Shared/Shared.Contracts/Enums/RiskSeverity.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Contracts/IntegrationEvents/">
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/AnalysisCompletedIntegrationEvent.cs" />
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/AnalysisFailedIntegrationEvent.cs" />
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/AnalysisRequestedIntegrationEvent.cs" />
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/AnalysisStartedIntegrationEvent.cs" />
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/ReportGeneratedIntegrationEvent.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Contracts/IntegrationEvents/Abstractions/">
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/Abstractions/IIntegrationEvent.cs" />
-    <File Path="src/Shared/Shared.Contracts/IntegrationEvents/Abstractions/IntegrationEventBase.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Contracts/Messaging/">
-    <File Path="src/Shared/Shared.Contracts/Constants/ExchangeNames.cs" />
-    <File Path="src/Shared/Shared.Contracts/Constants/HeaderNames.cs" />
-    <File Path="src/Shared/Shared.Contracts/Constants/RoutingKeys.cs" />
-    <File Path="src/Shared/Shared.Contracts/Messaging/MessageVersions.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Kernel/" />
-  <Folder Name="/src/Shared/Shared.Kernel/Exceptions/">
-    <File Path="src/Shared/Shared.Kernel/Exceptions/AppException.cs" />
-    <File Path="src/Shared/Shared.Kernel/Exceptions/DomainException.cs" />
-    <File Path="src/Shared/Shared.Kernel/Exceptions/NotFoundException.cs" />
-    <File Path="src/Shared/Shared.Kernel/Exceptions/ValidationException.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Kernel/Pagination/">
-    <File Path="src/Shared/Shared.Kernel/Pagination/PagedResult.cs" />
-    <File Path="src/Shared/Shared.Kernel/Pagination/PaginationParams.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Kernel/Primitives/">
-    <File Path="src/Shared/Shared.Kernel/Primitives/AggregateRoot.cs" />
-    <File Path="src/Shared/Shared.Kernel/Primitives/DomainEvent.cs" />
-    <File Path="src/Shared/Shared.Kernel/Primitives/Entity.cs" />
-    <File Path="src/Shared/Shared.Kernel/Primitives/ValueObject.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Kernel/Result/">
-    <File Path="src/Shared/Shared.Kernel/Result/Error.cs" />
-    <File Path="src/Shared/Shared.Kernel/Result/ErrorType.cs" />
-    <File Path="src/Shared/Shared.Kernel/Result/Result.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Observability/" />
-  <Folder Name="/src/Shared/Shared.Observability/Correlation/">
-    <File Path="src/Shared/Shared.Observability/Correlation/CorrelationContextAccessor.cs" />
-    <File Path="src/Shared/Shared.Observability/Correlation/CorrelationMiddlewareExtension.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Observability/HealthChecks/">
-    <File Path="src/Shared/Shared.Observability/HealthChecks/HealthCheckExtensions.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Observability/Logging/">
-    <File Path="src/Shared/Shared.Observability/Logging/LogEnrichers.cs" />
-    <File Path="src/Shared/Shared.Observability/Logging/SerilogExtensions.cs" />
-  </Folder>
-  <Folder Name="/src/Shared/Shared.Observability/Telemetry/">
-    <File Path="src/Shared/Shared.Observability/OpenTelemetry/TelemetryConstants.cs" />
-    <File Path="src/Shared/Shared.Observability/Telemetry/ActivitySources.cs" />
-    <File Path="src/Shared/Shared.Observability/Telemetry/MetricNames.cs" />
-    <File Path="src/Shared/Shared.Observability/Telemetry/OpenTelemetryExtensions.cs" />
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/Shared.csproj" />
   </Folder>
   <Folder Name="/tests/" />
 </Solution>
