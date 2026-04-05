@@ -1,6 +1,11 @@
-﻿namespace Shared.Kernel.Primitives;
+﻿namespace Shared.Kernel.Result;
 
-public class Entity
+public enum ErrorType
 {
-
+    Failure = 0,
+    Validation = 1,
+    NotFound = 2,
+    Conflict = 3,
+    Unauthorized = 4,
+    Forbidden = 5
 }

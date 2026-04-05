@@ -1,6 +1,13 @@
 ﻿namespace Shared.Kernel.Primitives;
 
-public class DomainEvent
+public abstract record DomainEvent
 {
+    protected DomainEvent()
+    {
+        EventId = Guid.NewGuid();
+        OccurredOnUtc = DateTime.UtcNow;
+    }
 
+    public Guid EventId { get; init; }
+    public DateTime OccurredOnUtc { get; init; }
 }
