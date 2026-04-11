@@ -3,6 +3,17 @@
   <Folder Name="/infra/" />
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/ProcessingService/">
+    <Project Path="ProcessingService.Application/ProcessingService.Application.csproj" Id="5859dc87-4327-4a3e-b861-69b070c00eaf" />
+    <Project Path="ProcessingService.Domain/ProcessingService.Domain.csproj" Id="abf0d3f5-e591-4118-9c10-7dff438a8189" />
+    <Project Path="ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj" Id="5670191f-e564-4b38-8c10-a4f5e84262b7" />
+  </Folder>
+  <Folder Name="/src/Services/ReportService/">
+    <Project Path="ReportService.Api/ReportService.Api.csproj" Id="87f8f2ac-bc81-449b-81e5-7fe3e3884ea0" />
+    <Project Path="ReportService.Application/ReportService.Application.csproj" Id="20c49808-2ad3-4313-b803-a04bb563a8d8" />
+    <Project Path="ReportService.Domain/ReportService.Domain.csproj" Id="fae288bc-f78e-4eb5-8c04-14db01560550" />
+    <Project Path="ReportService.Infrastructure/ReportService.Infrastructure.csproj" Id="42fef313-e95e-4cac-a1e8-020dd50824c2" />
+  </Folder>
   <Folder Name="/src/Services/UploadService/">
     <Project Path="src/Services/UploadService/UploadService.Api/UploadService.Api.csproj" />
     <Project Path="src/Services/UploadService/UploadService.Application/UploadService.Application.csproj" Id="1a77e9d1-9673-400c-925c-c77c84b99fb2" />
