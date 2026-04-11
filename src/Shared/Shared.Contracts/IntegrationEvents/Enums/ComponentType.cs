@@ -1,4 +1,4 @@
-﻿namespace Shared.Contracts.Enums;
+﻿namespace Shared.Contracts.IntegrationEvents.Enums;
 
 public enum ComponentType
 {

@@ -28,7 +28,7 @@ public static class SerilogExtensions
         IServiceProvider serviceProvider,
         string applicationName)
     {
-        var correlationAccessor = serviceProvider.GetRequiredService<CorrelationContextAccessor>();
+        var correlationAccessor = serviceProvider.GetRequiredService<ICorrelationContextAccessor>();
 
         return loggerConfiguration
             .Enrich.FromLogContext()

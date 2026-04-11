@@ -2,7 +2,7 @@
 
 namespace Shared.Contracts.IntegrationEvents.Abstractions;
 
-public abstract record IntegrationEventBase : IIntegrationEvent
+public abstract record IntegrationEventBase
 {
     protected IntegrationEventBase(Guid correlationId, Guid? causationId = null)
     {
@@ -14,7 +14,6 @@ public abstract record IntegrationEventBase : IIntegrationEvent
 
     public Guid EventId { get; init; }
     public abstract string EventType { get; }
-    public virtual string EventVersion => MessageVersions.V1;
     public DateTime OccurredOnUtc { get; init; }
     public Guid CorrelationId { get; init; }
     public Guid? CausationId { get; init; }

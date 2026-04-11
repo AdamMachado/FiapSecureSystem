@@ -6,9 +6,9 @@ namespace Shared.Observability.Logging;
 
 public sealed class CorrelationLogEnricher : ILogEventEnricher
 {
-    private readonly CorrelationContextAccessor _correlationContextAccessor;
+    private readonly ICorrelationContextAccessor _correlationContextAccessor;
 
-    public CorrelationLogEnricher(CorrelationContextAccessor correlationContextAccessor)
+    public CorrelationLogEnricher(ICorrelationContextAccessor correlationContextAccessor)
     {
         _correlationContextAccessor = correlationContextAccessor;
     }

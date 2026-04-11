@@ -8,11 +8,10 @@ public sealed class MessageCorrelationContext
     public string? CausationId { get; init; }
     public string? MessageId { get; init; }
     public string? MessageType { get; init; }
-    public string? MessageVersion { get; init; }
     public string? Source { get; init; }
     public string? OccurredOnUtc { get; init; }
 
-    public static MessageCorrelationContext FromIntegrationEvent(IIntegrationEvent integrationEvent, string? source = null)
+    public static MessageCorrelationContext FromIntegrationEvent(IntegrationEventBase integrationEvent, string? source = null)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
@@ -22,7 +21,6 @@ public sealed class MessageCorrelationContext
             CausationId = integrationEvent.CausationId?.ToString("N"),
             MessageId = integrationEvent.EventId.ToString("N"),
             MessageType = integrationEvent.EventType,
-            MessageVersion = integrationEvent.EventVersion,
             Source = source,
             OccurredOnUtc = integrationEvent.OccurredOnUtc.ToString("O")
         };

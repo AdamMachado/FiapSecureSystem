@@ -10,7 +10,7 @@ public static class CorrelationMiddlewareExtensions
 {
     public static IServiceCollection AddCorrelationContext(this IServiceCollection services)
     {
-        services.AddSingleton<CorrelationContextAccessor>();
+        services.AddSingleton<ICorrelationContextAccessor>();
         return services;
     }
 
@@ -18,7 +18,7 @@ public static class CorrelationMiddlewareExtensions
     {
         return app.Use(async (context, next) =>
         {
-            var accessor = context.RequestServices.GetRequiredService<CorrelationContextAccessor>();
+            var accessor = context.RequestServices.GetRequiredService<ICorrelationContextAccessor>();
 
             var correlationId = GetHeaderOrGenerate(context, HeaderNames.CorrelationId);
             var causationId = GetOptionalHeader(context, HeaderNames.CausationId);

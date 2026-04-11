@@ -2,7 +2,7 @@
 
 namespace Shared.Observability.Correlation;
 
-public sealed class CorrelationContextAccessor
+public sealed class CorrelationContextAccessor : ICorrelationContextAccessor
 {
     private const string CorrelationIdKey = "CorrelationId";
     private const string CausationIdKey = "CausationId";

@@ -10,7 +10,7 @@ public static class MessageCorrelationExtensions
 {
     public static void ApplyCorrelationHeaders(
         this IBasicProperties properties,
-        CorrelationContextAccessor correlationContextAccessor,
+        ICorrelationContextAccessor correlationContextAccessor,
         string? source = null)
     {
         ArgumentNullException.ThrowIfNull(properties);
@@ -32,7 +32,7 @@ public static class MessageCorrelationExtensions
 
     public static void ApplyIntegrationEventHeaders(
         this IBasicProperties properties,
-        IIntegrationEvent integrationEvent,
+        IntegrationEventBase integrationEvent,
         string? source = null)
     {
         ArgumentNullException.ThrowIfNull(properties);
@@ -46,7 +46,6 @@ public static class MessageCorrelationExtensions
         SetHeader(properties.Headers, HeaderNames.CausationId, context.CausationId);
         SetHeader(properties.Headers, HeaderNames.MessageId, context.MessageId);
         SetHeader(properties.Headers, HeaderNames.MessageType, context.MessageType);
-        SetHeader(properties.Headers, HeaderNames.MessageVersion, context.MessageVersion);
         SetHeader(properties.Headers, HeaderNames.Source, context.Source);
         SetHeader(properties.Headers, HeaderNames.OccurredOnUtc, context.OccurredOnUtc);
 
@@ -81,7 +80,6 @@ public static class MessageCorrelationExtensions
             CausationId = ReadHeader(headers, HeaderNames.CausationId),
             MessageId = messageId,
             MessageType = messageType,
-            MessageVersion = ReadHeader(headers, HeaderNames.MessageVersion),
             Source = ReadHeader(headers, HeaderNames.Source),
             OccurredOnUtc = ReadHeader(headers, HeaderNames.OccurredOnUtc)
         };
@@ -89,7 +87,7 @@ public static class MessageCorrelationExtensions
 
     public static MessageCorrelationContext SetCorrelationContext(
         this IBasicProperties properties,
-        CorrelationContextAccessor correlationContextAccessor)
+        ICorrelationContextAccessor correlationContextAccessor)
     {
         ArgumentNullException.ThrowIfNull(properties);
         ArgumentNullException.ThrowIfNull(correlationContextAccessor);
@@ -103,7 +101,7 @@ public static class MessageCorrelationExtensions
     }
 
     public static void SetAsCausationFrom(
-        this CorrelationContextAccessor correlationContextAccessor,
+        this ICorrelationContextAccessor correlationContextAccessor,
         MessageCorrelationContext consumedMessageContext)
     {
         ArgumentNullException.ThrowIfNull(correlationContextAccessor);
@@ -114,7 +112,7 @@ public static class MessageCorrelationExtensions
     }
 
     public static IDictionary<string, object> CreateHeaders(
-        this IIntegrationEvent integrationEvent,
+        this IntegrationEventBase integrationEvent,
         string? source = null)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
@@ -127,7 +125,6 @@ public static class MessageCorrelationExtensions
         SetHeader(headers, HeaderNames.CausationId, context.CausationId);
         SetHeader(headers, HeaderNames.MessageId, context.MessageId);
         SetHeader(headers, HeaderNames.MessageType, context.MessageType);
-        SetHeader(headers, HeaderNames.MessageVersion, context.MessageVersion);
         SetHeader(headers, HeaderNames.Source, context.Source);
         SetHeader(headers, HeaderNames.OccurredOnUtc, context.OccurredOnUtc);
 

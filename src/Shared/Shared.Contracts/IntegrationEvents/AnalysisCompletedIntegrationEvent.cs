@@ -1,5 +1,5 @@
 ﻿using Shared.Contracts.IntegrationEvents.Abstractions;
-using Shared.Contracts.Models;
+using Shared.Contracts.IntegrationEvents.Schemas;
 
 namespace Shared.Contracts.IntegrationEvents;
 

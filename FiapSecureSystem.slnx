@@ -10,7 +10,9 @@
     <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
-    <Project Path="src/Shared/Shared.csproj" />
+    <Project Path="src/Shared/Shared.Contracts/Shared.Contracts.csproj" />
+    <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj" />
+    <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
   </Folder>
   <Folder Name="/tests/" />
 </Solution>
