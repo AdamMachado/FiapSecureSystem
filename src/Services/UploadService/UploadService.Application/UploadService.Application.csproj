@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Observability\Shared.Observability.csproj" />
+    <ProjectReference Include="..\UploadService.Domain\UploadService.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,29 @@
+﻿using Shared.Contracts.IntegrationEvents;
+using UploadService.Application.Abstractions.Messaging;
+using UploadService.Application.UseCases.UpdateAnalysisStatus;
+using UploadService.Domain.Enums;
+
+namespace UploadService.Application.Integration.Consumed;
+
+public sealed class AnalysisFailedMessageHandler
+    : IIntegrationEventHandler<AnalysisFailedIntegrationEvent>
+{
+    private readonly UpdateAnalysisStatusHandler _updateAnalysisStatusHandler;
+
+    public AnalysisFailedMessageHandler(UpdateAnalysisStatusHandler updateAnalysisStatusHandler)
+    {
+        _updateAnalysisStatusHandler = updateAnalysisStatusHandler;
+    }
+
+    public async Task HandleAsync(
+        AnalysisFailedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateAnalysisStatusCommand(
+            integrationEvent.AnalysisRequestId,
+            AnalysisStatus.Failed,
+            integrationEvent.Reason);
+
+        await _updateAnalysisStatusHandler.HandleAsync(command, cancellationToken);
+    }
+}

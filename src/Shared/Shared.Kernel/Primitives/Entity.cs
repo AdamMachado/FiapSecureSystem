@@ -4,6 +4,15 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>> where TId : notnull
 {
     public TId Id { get; protected set; } = default!;
 
+    protected Entity(TId id)
+    {
+        Id = id;
+    }
+
+    protected Entity()
+    {
+    }
+
     public override bool Equals(object? obj)
     {
         return obj is Entity<TId> other && Equals(other);

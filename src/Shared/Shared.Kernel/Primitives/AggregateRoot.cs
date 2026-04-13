@@ -3,8 +3,15 @@
 public abstract class AggregateRoot<TId> : Entity<TId> where TId : notnull
 {
     private readonly List<DomainEvent> _domainEvents = new();
-
     public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    protected AggregateRoot()
+    {
+    }
+
+    protected AggregateRoot(TId id) : base(id)
+    {
+    }
 
     protected void RaiseDomainEvent(DomainEvent domainEvent)
     {
@@ -12,8 +19,10 @@ public abstract class AggregateRoot<TId> : Entity<TId> where TId : notnull
         _domainEvents.Add(domainEvent);
     }
 
-    public void ClearDomainEvents()
+    public IReadOnlyCollection<DomainEvent> DequeueDomainEvents()
     {
+        var events = _domainEvents.ToArray();
         _domainEvents.Clear();
+        return events;
     }
 }

@@ -2,26 +2,27 @@
 
 namespace Shared.Contracts.IntegrationEvents;
 
-public sealed record AnalysisFailedIntegrationEvent : IntegrationEventBase
+public sealed class AnalysisFailedIntegrationEvent : IntegrationEventBase
 {
     public AnalysisFailedIntegrationEvent(
         Guid correlationId,
         Guid? causationId,
-        Guid jobId,
+        Guid analysisRequestId,
+        Guid requestedByUserId,
         DateTime failedAtUtc,
         string reason,
         string? details = null)
         : base(correlationId, causationId)
     {
-        JobId = jobId;
+        AnalysisRequestId = analysisRequestId;
+        RequestedByUserId = requestedByUserId;
         FailedAtUtc = failedAtUtc;
         Reason = reason;
         Details = details;
     }
 
-    public override string EventType => nameof(AnalysisFailedIntegrationEvent);
-
-    public Guid JobId { get; init; }
+    public Guid AnalysisRequestId { get; init; }
+    public Guid RequestedByUserId { get; init; }
     public DateTime FailedAtUtc { get; init; }
     public string Reason { get; init; }
     public string? Details { get; init; }

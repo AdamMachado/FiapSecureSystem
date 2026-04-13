@@ -2,30 +2,34 @@
 
 namespace Shared.Contracts.IntegrationEvents;
 
-public sealed record AnalysisRequestedIntegrationEvent : IntegrationEventBase
+public sealed class AnalysisRequestedIntegrationEvent : IntegrationEventBase
 {
     public AnalysisRequestedIntegrationEvent(
         Guid correlationId,
         Guid? causationId,
-        Guid jobId,
+        Guid analysisRequestId,
+        Guid requestedByUserId,
         string fileName,
         string contentType,
+        string fileHash,
         string storageBucket,
         string storageObjectKey)
         : base(correlationId, causationId)
     {
-        JobId = jobId;
+        AnalysisRequestId = analysisRequestId;
+        RequestedByUserId = requestedByUserId;
         FileName = fileName;
         ContentType = contentType;
+        FileHash = fileHash;
         StorageBucket = storageBucket;
         StorageObjectKey = storageObjectKey;
     }
 
-    public override string EventType => nameof(AnalysisRequestedIntegrationEvent);
-
-    public Guid JobId { get; init; }
+    public Guid AnalysisRequestId { get; init; }
+    public Guid RequestedByUserId { get; init; }
     public string FileName { get; init; }
     public string ContentType { get; init; }
+    public string FileHash { get; init; }
     public string StorageBucket { get; init; }
     public string StorageObjectKey { get; init; }
 }

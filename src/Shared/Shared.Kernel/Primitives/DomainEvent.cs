@@ -1,6 +1,6 @@
 ﻿namespace Shared.Kernel.Primitives;
 
-public abstract record DomainEvent
+public abstract class DomainEvent
 {
     protected DomainEvent()
     {

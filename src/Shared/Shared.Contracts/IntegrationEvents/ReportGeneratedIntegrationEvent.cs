@@ -2,12 +2,13 @@
 
 namespace Shared.Contracts.IntegrationEvents;
 
-public sealed record ReportGeneratedIntegrationEvent : IntegrationEventBase
+public sealed class ReportGeneratedIntegrationEvent : IntegrationEventBase
 {
     public ReportGeneratedIntegrationEvent(
         Guid correlationId,
         Guid? causationId,
-        Guid jobId,
+        Guid analysisRequestId,
+        Guid requestedByUserId,
         Guid reportId,
         string storageBucket,
         string storageObjectKey,
@@ -15,7 +16,8 @@ public sealed record ReportGeneratedIntegrationEvent : IntegrationEventBase
         DateTime generatedAtUtc)
         : base(correlationId, causationId)
     {
-        JobId = jobId;
+        AnalysisRequestId = analysisRequestId;
+        RequestedByUserId = requestedByUserId;
         ReportId = reportId;
         StorageBucket = storageBucket;
         StorageObjectKey = storageObjectKey;
@@ -23,9 +25,8 @@ public sealed record ReportGeneratedIntegrationEvent : IntegrationEventBase
         GeneratedAtUtc = generatedAtUtc;
     }
 
-    public override string EventType => nameof(ReportGeneratedIntegrationEvent);
-
-    public Guid JobId { get; init; }
+    public Guid AnalysisRequestId { get; init; }
+    public Guid RequestedByUserId { get; init; }
     public Guid ReportId { get; init; }
     public string StorageBucket { get; init; }
     public string StorageObjectKey { get; init; }
