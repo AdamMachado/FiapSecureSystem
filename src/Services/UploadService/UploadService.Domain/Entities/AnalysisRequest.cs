@@ -2,34 +2,36 @@
 using Shared.Kernel.Primitives;
 using UploadService.Domain.Enums;
 using UploadService.Domain.Events;
-using UploadService.Domain.Exceptions;
 using UploadService.Domain.ValueObjects;
 
 namespace UploadService.Domain.Entities;
 
 public sealed class AnalysisRequest : AggregateRoot<Guid>
 {
-    private const long DefaultMaxFileSizeInBytes = 10 * 1024 * 1024; // 10 MB
-
     private AnalysisRequest(
         Guid id,
         Guid requestedByUserId,
         FileMetadata fileMetadata,
         FileHash fileHash,
-        StorageObjectKey storageObjectKey,
+        StorageLocation storageLocation,
         DateTime createdAtUtc)
         : base(id)
     {
+        if (requestedByUserId == Guid.Empty)
+            throw new ArgumentException("RequestedByUserId cannot be empty.", nameof(requestedByUserId));
+
+        if (createdAtUtc == default)
+            throw new ArgumentException("CreatedAtUtc must be a valid UTC date.", nameof(createdAtUtc));
+
         RequestedByUserId = requestedByUserId;
-        FileMetadata = fileMetadata;
-        FileHash = fileHash;
-        StorageObjectKey = storageObjectKey;
+        FileMetadata = fileMetadata ?? throw new ArgumentNullException(nameof(fileMetadata));
+        FileHash = fileHash ?? throw new ArgumentNullException(nameof(fileHash));
+        StorageLocation = storageLocation ?? throw new ArgumentNullException(nameof(storageLocation));
         Status = AnalysisStatus.Received;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
     }
 
-    // EF Core
     private AnalysisRequest()
     {
     }
@@ -37,7 +39,7 @@ public sealed class AnalysisRequest : AggregateRoot<Guid>
     public Guid RequestedByUserId { get; private set; }
     public FileMetadata FileMetadata { get; private set; } = default!;
     public FileHash FileHash { get; private set; } = default!;
-    public StorageObjectKey StorageObjectKey { get; private set; } = default!;
+    public StorageLocation StorageLocation { get; private set; } = default!;
     public AnalysisStatus Status { get; private set; }
     public string? FailureReason { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -51,18 +53,15 @@ public sealed class AnalysisRequest : AggregateRoot<Guid>
         Guid requestedByUserId,
         FileMetadata fileMetadata,
         FileHash fileHash,
-        StorageObjectKey storageObjectKey,
-        DateTime createdAtUtc,
-        long maxFileSizeInBytes = DefaultMaxFileSizeInBytes)
+        StorageLocation storageLocation,
+        DateTime createdAtUtc)
     {
-        ValidateUpload(fileMetadata, maxFileSizeInBytes);
-
         var entity = new AnalysisRequest(
             id,
             requestedByUserId,
             fileMetadata,
             fileHash,
-            storageObjectKey,
+            storageLocation,
             createdAtUtc);
 
         entity.RaiseDomainEvent(new AnalysisRequestCreatedDomainEvent(
@@ -70,7 +69,7 @@ public sealed class AnalysisRequest : AggregateRoot<Guid>
             entity.RequestedByUserId,
             entity.FileMetadata,
             entity.FileHash,
-            entity.StorageObjectKey,
+            entity.StorageLocation,
             entity.Status));
 
         return entity;
@@ -129,22 +128,6 @@ public sealed class AnalysisRequest : AggregateRoot<Guid>
             previous,
             Status,
             FailureReason));
-    }
-
-    private static void ValidateUpload(FileMetadata fileMetadata, long maxFileSizeInBytes)
-    {
-        if (fileMetadata.SizeInBytes <= 0)
-            throw new EmptyUploadException();
-
-        if (fileMetadata.SizeInBytes > maxFileSizeInBytes)
-            throw new FileSizeExceededException(maxFileSizeInBytes, fileMetadata.SizeInBytes);
-
-        if (fileMetadata.FileType is not FileType.Pdf
-            && fileMetadata.FileType is not FileType.Png
-            && fileMetadata.FileType is not FileType.Jpeg)
-        {
-            throw new UnsupportedFileTypeException(fileMetadata.ContentType);
-        }
     }
 
     private void EnsureTransitionAllowed(AnalysisStatus targetStatus)

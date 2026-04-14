@@ -3,13 +3,18 @@
 public enum ComponentType
 {
     Unknown = 0,
-    Architecture = 1,
-    Backend = 2,
+    Actor = 1,
+    Client = 2,
     Frontend = 3,
-    Database = 4,
-    Infrastructure = 5,
-    DevOps = 6,
-    Security = 7,
-    Integration = 8,
-    Observability = 9
+    Backend = 4,
+    ApiGateway = 5,
+    Database = 6,
+    Queue = 7,
+    Cache = 8,
+    ExternalService = 9,
+    Storage = 10,
+    Network = 11,
+    Security = 12,
+    Observability = 13,
+    Infrastructure = 14
 }

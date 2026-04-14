@@ -1,6 +1,4 @@
-﻿using Shared.Contracts.Messaging;
-
-namespace Shared.Contracts.IntegrationEvents.Abstractions;
+﻿namespace Shared.Contracts.IntegrationEvents.Abstractions;
 
 public abstract class IntegrationEventBase
 {

@@ -10,7 +10,7 @@ public static class CorrelationMiddlewareExtensions
 {
     public static IServiceCollection AddCorrelationContext(this IServiceCollection services)
     {
-        services.AddSingleton<ICorrelationContextAccessor>();
+        services.AddSingleton<ICorrelationContextAccessor, CorrelationContextAccessor>();
         return services;
     }
 
