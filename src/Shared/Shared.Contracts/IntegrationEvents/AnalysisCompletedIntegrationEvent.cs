@@ -11,20 +11,18 @@ public sealed class AnalysisCompletedIntegrationEvent : IntegrationEventBase
         Guid analysisRequestId,
         Guid requestedByUserId,
         DateTime completedAtUtc,
-        IReadOnlyCollection<AnalysisRiskItem> risks,
+        AnalysisResultDto result,
         string summary)
         : base(correlationId, causationId)
     {
         AnalysisRequestId = analysisRequestId;
         RequestedByUserId = requestedByUserId;
         CompletedAtUtc = completedAtUtc;
-        Risks = risks;
-        Summary = summary;
+        Result = result;
     }
 
     public Guid AnalysisRequestId { get; init; }
     public Guid RequestedByUserId { get; init; }
     public DateTime CompletedAtUtc { get; init; }
-    public IReadOnlyCollection<AnalysisRiskItem> Risks { get; init; }
-    public string Summary { get; init; }
+    public AnalysisResultDto Result { get; init; }
 }

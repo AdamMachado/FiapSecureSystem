@@ -12,27 +12,19 @@ public static class SerilogExtensions
         IConfiguration configuration,
         string applicationName)
     {
+        services.AddSingleton<ICorrelationContextAccessor, CorrelationContextAccessor>();
         services.AddSingleton<CorrelationLogEnricher>();
 
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration)
-            .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", applicationName)
-            .CreateLogger();
+        services.AddSerilog((services, loggerConfiguration) =>
+        {
+            loggerConfiguration
+                .ReadFrom.Configuration(configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("Application", applicationName)
+                .Enrich.With(services.GetRequiredService<CorrelationLogEnricher>());
+        });
 
         return services;
-    }
-
-    public static LoggerConfiguration AddSharedEnrichers(
-        this LoggerConfiguration loggerConfiguration,
-        IServiceProvider serviceProvider,
-        string applicationName)
-    {
-        var correlationAccessor = serviceProvider.GetRequiredService<ICorrelationContextAccessor>();
-
-        return loggerConfiguration
-            .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", applicationName)
-            .Enrich.With(new CorrelationLogEnricher(correlationAccessor));
     }
 }

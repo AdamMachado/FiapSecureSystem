@@ -13,5 +13,5 @@ public sealed record UploadObjectRequest(
     string ContentType);
 
 public sealed record StoredObjectDescriptor(
-    string ObjectKey,
+    StorageLocation Location,
     string ETag);

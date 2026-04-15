@@ -1,6 +1,6 @@
 ﻿namespace Shared.Contracts.IntegrationEvents.Enums;
 
-public enum RiskSeverity
+public enum RiskSeverityLevel
 {
     Low = 0,
     Medium = 1,

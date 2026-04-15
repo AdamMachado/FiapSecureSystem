@@ -10,7 +10,7 @@ public class AnalysisRequestCreatedDomainEvent : DomainEvent
     public Guid RequestedByUserId { get; }
     public FileMetadata FileMetadata { get; }
     public FileHash FileHash { get; }
-    public StorageObjectKey StorageObjectKey { get; }
+    public StorageLocation StorageLocation { get; }
     public AnalysisStatus Status { get; }
 
     public AnalysisRequestCreatedDomainEvent(
@@ -18,14 +18,14 @@ public class AnalysisRequestCreatedDomainEvent : DomainEvent
         Guid requestedByUserId,
         FileMetadata fileMetadata,
         FileHash fileHash,
-        StorageObjectKey storageObjectKey,
+        StorageLocation storageLocation,
         AnalysisStatus status)
     {
         AnalysisRequestId = analysisRequestId;
         RequestedByUserId = requestedByUserId;
         FileMetadata = fileMetadata;
         FileHash = fileHash;
-        StorageObjectKey = storageObjectKey;
+        StorageLocation = storageLocation;
         Status = status;
     }
 }
