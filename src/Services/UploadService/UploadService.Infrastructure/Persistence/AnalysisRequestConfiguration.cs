@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using UploadService.Domain.Entities;
-using UploadService.Domain.ValueObjects;
-
 namespace UploadService.Infrastructure.Persistence.Configurations;
 
 public sealed class AnalysisRequestConfiguration : IEntityTypeConfiguration<AnalysisRequest>

@@ -64,26 +64,24 @@ public sealed class RabbitMqSubscriberService : BackgroundService
         ];
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         foreach (var consumer in _consumers)
         {
-            ConfigureConsumer(consumer);
+            await ConfigureConsumer(consumer);
         }
-
-        return Task.CompletedTask;
     }
 
-    private void ConfigureConsumer(RabbitMqConsumerDescriptor descriptor)
+    private async Task ConfigureConsumer(RabbitMqConsumerDescriptor descriptor)
     {
-        _channel.Model.ExchangeDeclare(descriptor.ExchangeName, ExchangeType.Topic, durable: true, autoDelete: false);
-        _channel.Model.QueueDeclare(descriptor.QueueName, durable: true, exclusive: false, autoDelete: false);
-        _channel.Model.QueueBind(descriptor.QueueName, descriptor.ExchangeName, descriptor.RoutingKey);
+        await _channel.Channel.ExchangeDeclareAsync(descriptor.ExchangeName, ExchangeType.Topic, durable: true, autoDelete: false);
+        await _channel.Channel.QueueDeclareAsync(descriptor.QueueName, durable: true, exclusive: false, autoDelete: false);
+        await _channel.Channel.QueueBindAsync(descriptor.QueueName, descriptor.ExchangeName, descriptor.RoutingKey);
 
-        var consumer = new AsyncEventingBasicConsumer(_channel.Model);
-        consumer.Received += _dispatcher.CreateHandler(descriptor);
+        var consumer = new AsyncEventingBasicConsumer(_channel.Channel);
+        consumer.ReceivedAsync += _dispatcher.CreateHandler(descriptor);
 
-        _channel.Model.BasicConsume(descriptor.QueueName, autoAck: false, consumer);
+        await _channel.Channel.BasicConsumeAsync(descriptor.QueueName, autoAck: false, consumer);
 
         _logger.LogInformation(
             "RabbitMQ consumer configured. Queue: {QueueName}, Exchange: {ExchangeName}, RoutingKey: {RoutingKey}",

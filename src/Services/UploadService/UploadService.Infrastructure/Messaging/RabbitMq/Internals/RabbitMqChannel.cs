@@ -1,46 +1,31 @@
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using UploadService.Infrastructure.Configuration.Options;
 
 namespace UploadService.Infrastructure.Messaging.RabbitMq.Internals;
 
-public sealed class RabbitMqChannel : IDisposable
+public sealed class RabbitMqChannel : IAsyncDisposable
 {
     private readonly IConnection _connection;
-    private readonly IModel _channel;
-    private bool _disposed;
+    public IChannel Channel { get; }
 
-    public RabbitMqChannel(IOptions<RabbitMqOptions> options)
+    private RabbitMqChannel(IConnection connection, IChannel channel)
     {
-        var settings = options.Value;
-
-        var factory = new ConnectionFactory
-        {
-            HostName = settings.Host,
-            Port = settings.Port,
-            VirtualHost = settings.VirtualHost,
-            UserName = settings.Username,
-            Password = settings.Password,
-            DispatchConsumersAsync = true,
-            ClientProvidedName = settings.ClientProvidedName,
-            Ssl = { Enabled = settings.UseSsl }
-        };
-
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
-        _channel.BasicQos(0, settings.PrefetchCount, false);
+        _connection = connection;
+        Channel = channel;
     }
 
-    public IModel Model => _channel;
-
-    public void Dispose()
+    public static async Task<RabbitMqChannel> CreateAsync(
+        ConnectionFactory factory,
+        CancellationToken cancellationToken = default)
     {
-        if (_disposed)
-            return;
+        var connection = await factory.CreateConnectionAsync(cancellationToken);
+        var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-        _channel.Dispose();
-        _connection.Dispose();
-        _disposed = true;
+        return new RabbitMqChannel(connection, channel);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Channel.DisposeAsync();
+        await _connection.DisposeAsync();
     }
 }

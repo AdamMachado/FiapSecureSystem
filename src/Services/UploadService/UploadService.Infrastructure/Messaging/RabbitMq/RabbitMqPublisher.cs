@@ -1,11 +1,8 @@
+using RabbitMQ.Client;
+using Shared.Contracts.IntegrationEvents.Abstractions;
+using Shared.Observability.Messaging;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
-using Shared.Contracts.IntegrationEvents;
-using Shared.Contracts.IntegrationEvents.Abstractions;
-using Shared.Contracts.Messaging;
-using Shared.Observability.Messaging;
 using UploadService.Application.Abstractions.Messaging;
 using UploadService.Infrastructure.Exceptions;
 using UploadService.Infrastructure.Messaging.RabbitMq.Internals;
@@ -14,67 +11,78 @@ namespace UploadService.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqPublisher : IEventPublisher
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly RabbitMqChannel _rabbitMqChannel;
 
-    private readonly RabbitMqChannel _channel;
-    private readonly ILogger<RabbitMqPublisher> _logger;
-
-    public RabbitMqPublisher(
-        RabbitMqChannel channel,
-        ILogger<RabbitMqPublisher> logger)
+    public RabbitMqPublisher(RabbitMqChannel rabbitMqChannel)
     {
-        _channel = channel;
-        _logger = logger;
+        _rabbitMqChannel = rabbitMqChannel;
     }
 
-    public Task PublishAsync(
+    public async Task PublishAsync(
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(integrationEvent);
-
         try
         {
-            var (exchange, routingKey) = ResolveRoute(integrationEvent);
+            var channel = _rabbitMqChannel.Channel;
 
-            _channel.Model.ExchangeDeclare(exchange, ExchangeType.Topic, durable: true, autoDelete: false);
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                integrationEvent,
+                integrationEvent.GetType()));
 
-            var properties = _channel.Model.CreateBasicProperties();
-            properties.Persistent = true;
-            properties.ContentType = "application/json";
-            properties.Type = integrationEvent.EventType;
-            properties.ApplyIntegrationEventHeaders(integrationEvent, source: "SOAT.UploadService");
+            BasicProperties properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json"
+            };
 
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(integrationEvent, integrationEvent.GetType(), JsonOptions));
+            properties.ApplyIntegrationEventHeaders(
+                integrationEvent,
+                source: "UploadService");
 
-            _channel.Model.BasicPublish(
-                exchange: exchange,
-                routingKey: routingKey,
+            await channel.BasicPublishAsync(
+                exchange: ResolveExchange(integrationEvent),
+                routingKey: ResolveRoutingKey(integrationEvent),
                 mandatory: false,
                 basicProperties: properties,
-                body: body);
-
-            _logger.LogInformation(
-                "Published integration event {EventType} to exchange {Exchange} with routing key {RoutingKey}.",
-                integrationEvent.EventType,
-                exchange,
-                routingKey);
-
-            return Task.CompletedTask;
+                body: body,
+                cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
-            throw new MessagePublishException(
-                $"Failed to publish integration event '{integrationEvent.EventType}'.",
-                ex);
+            throw new MessagePublishException("Failed to publish RabbitMQ message.", ex);
         }
     }
 
-    private static (string Exchange, string RoutingKey) ResolveRoute(IntegrationEventBase integrationEvent)
-        => integrationEvent switch
+    private static string ResolveExchange(IntegrationEventBase integrationEvent)
+    {
+        return integrationEvent switch
         {
-            AnalysisRequestedIntegrationEvent => (ExchangeNames.Analysis, RoutingKeys.AnalysisRequested),
-            _ => throw new InvalidOperationException(
-                $"There is no route configured for event type '{integrationEvent.GetType().Name}'.")
+            _ => Shared.Contracts.Messaging.ExchangeNames.Analysis
         };
+    }
+
+    private static string ResolveRoutingKey(IntegrationEventBase integrationEvent)
+    {
+        return integrationEvent switch
+        {
+            Shared.Contracts.IntegrationEvents.AnalysisRequestedIntegrationEvent
+                => Shared.Contracts.Messaging.RoutingKeys.AnalysisRequested,
+
+            Shared.Contracts.IntegrationEvents.AnalysisStartedIntegrationEvent
+                => Shared.Contracts.Messaging.RoutingKeys.AnalysisStarted,
+
+            Shared.Contracts.IntegrationEvents.AnalysisCompletedIntegrationEvent
+                => Shared.Contracts.Messaging.RoutingKeys.AnalysisCompleted,
+
+            Shared.Contracts.IntegrationEvents.AnalysisFailedIntegrationEvent
+                => Shared.Contracts.Messaging.RoutingKeys.AnalysisFailed,
+
+            Shared.Contracts.IntegrationEvents.ReportGeneratedIntegrationEvent
+                => Shared.Contracts.Messaging.RoutingKeys.ReportGenerated,
+
+            _ => throw new InvalidOperationException(
+                $"No routing key mapped for event type '{integrationEvent.GetType().Name}'.")
+        };
+    }
 }

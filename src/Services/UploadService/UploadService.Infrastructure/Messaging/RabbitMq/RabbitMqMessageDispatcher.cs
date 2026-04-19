@@ -1,13 +1,13 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Observability.Correlation;
 using Shared.Observability.Messaging;
+using UploadService.Infrastructure.Messaging.RabbitMq.Internals;
 
-namespace UploadService.Infrastructure.Messaging.RabbitMq.Internals;
+namespace UploadService.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqMessageDispatcher
 {
@@ -33,7 +33,7 @@ public sealed class RabbitMqMessageDispatcher
         {
             using var scope = _serviceProvider.CreateScope();
 
-            var model = scope.ServiceProvider.GetRequiredService<RabbitMqChannel>().Model;
+            var channel = scope.ServiceProvider.GetRequiredService<RabbitMqChannel>().Channel;
             var correlation = args.BasicProperties.ExtractCorrelationContext();
             _correlationContextAccessor.CorrelationId = correlation.CorrelationId;
             _correlationContextAccessor.CausationId = correlation.MessageId;
@@ -50,7 +50,7 @@ public sealed class RabbitMqMessageDispatcher
                         $"Could not deserialize message to '{descriptor.IntegrationEventType.Name}'.");
 
                 await descriptor.Handler(scope.ServiceProvider, integrationEvent, CancellationToken.None);
-                model.BasicAck(args.DeliveryTag, false);
+                await channel.BasicAckAsync(args.DeliveryTag, false);
             }
             catch (Exception ex)
             {
@@ -60,7 +60,7 @@ public sealed class RabbitMqMessageDispatcher
                     descriptor.QueueName,
                     args.RoutingKey);
 
-                model.BasicNack(args.DeliveryTag, false, false);
+                await channel.BasicNackAsync(args.DeliveryTag, false, false);
             }
             finally
             {

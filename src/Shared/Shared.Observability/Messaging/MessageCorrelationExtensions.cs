@@ -19,7 +19,7 @@ public static class MessageCorrelationExtensions
         var correlationId = correlationContextAccessor.CorrelationId ?? Guid.NewGuid().ToString("N");
         var causationId = correlationContextAccessor.CausationId;
 
-        properties.Headers ??= new Dictionary<string, object>();
+        properties.Headers ??= new Dictionary<string, object?>();
 
         SetHeader(properties.Headers, HeaderNames.CorrelationId, correlationId);
         SetHeader(properties.Headers, HeaderNames.CausationId, causationId);
@@ -40,7 +40,7 @@ public static class MessageCorrelationExtensions
 
         var context = MessageCorrelationContext.FromIntegrationEvent(integrationEvent, source);
 
-        properties.Headers ??= new Dictionary<string, object>();
+        properties.Headers ??= new Dictionary<string, object?>();
 
         SetHeader(properties.Headers, HeaderNames.CorrelationId, context.CorrelationId);
         SetHeader(properties.Headers, HeaderNames.CausationId, context.CausationId);
@@ -55,7 +55,7 @@ public static class MessageCorrelationExtensions
         properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     }
 
-    public static MessageCorrelationContext ExtractCorrelationContext(this IBasicProperties properties)
+    public static MessageCorrelationContext ExtractCorrelationContext(this IReadOnlyBasicProperties properties)
     {
         ArgumentNullException.ThrowIfNull(properties);
 
@@ -86,7 +86,7 @@ public static class MessageCorrelationExtensions
     }
 
     public static MessageCorrelationContext SetCorrelationContext(
-        this IBasicProperties properties,
+        this IReadOnlyBasicProperties properties,
         ICorrelationContextAccessor correlationContextAccessor)
     {
         ArgumentNullException.ThrowIfNull(properties);
@@ -111,7 +111,7 @@ public static class MessageCorrelationExtensions
         correlationContextAccessor.CausationId = consumedMessageContext.MessageId;
     }
 
-    public static IDictionary<string, object> CreateHeaders(
+    public static IDictionary<string, object?> CreateHeaders(
         this IntegrationEventBase integrationEvent,
         string? source = null)
     {
@@ -119,7 +119,7 @@ public static class MessageCorrelationExtensions
 
         var context = MessageCorrelationContext.FromIntegrationEvent(integrationEvent, source);
 
-        var headers = new Dictionary<string, object>();
+        var headers = new Dictionary<string, object?>();
 
         SetHeader(headers, HeaderNames.CorrelationId, context.CorrelationId);
         SetHeader(headers, HeaderNames.CausationId, context.CausationId);
@@ -131,7 +131,7 @@ public static class MessageCorrelationExtensions
         return headers;
     }
 
-    private static void SetHeader(IDictionary<string, object> headers, string key, string? value)
+    private static void SetHeader(IDictionary<string, object?> headers, string key, string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return;
@@ -139,7 +139,7 @@ public static class MessageCorrelationExtensions
         headers[key] = Encoding.UTF8.GetBytes(value);
     }
 
-    private static string? ReadHeader(IDictionary<string, object>? headers, string key)
+    private static string? ReadHeader(IDictionary<string, object?>? headers, string key)
     {
         if (headers is null || !headers.TryGetValue(key, out var value) || value is null)
             return null;

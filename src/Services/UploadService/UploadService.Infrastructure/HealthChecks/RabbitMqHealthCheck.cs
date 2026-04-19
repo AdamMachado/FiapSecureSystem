@@ -14,7 +14,7 @@ public sealed class RabbitMqHealthCheck : IHealthCheck
         _options = options.Value;
     }
 
-    public Task<HealthCheckResult> CheckHealthAsync(
+    public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
@@ -27,18 +27,17 @@ public sealed class RabbitMqHealthCheck : IHealthCheck
                 VirtualHost = _options.VirtualHost,
                 UserName = _options.Username,
                 Password = _options.Password,
-                ClientProvidedName = $"{_options.ClientProvidedName}.healthcheck"
+                ClientProvidedName = $"{_options.ClientProvidedName}.healthcheck",
             };
 
-            using var connection = factory.CreateConnection();
-            using var channel = connection.CreateModel();
+            using var connection = await factory.CreateConnectionAsync(cancellationToken);
+            using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-            return Task.FromResult(HealthCheckResult.Healthy("RabbitMQ is reachable."));
+            return HealthCheckResult.Healthy("RabbitMQ is reachable.");
         }
         catch (Exception ex)
         {
-            return Task.FromResult(
-                HealthCheckResult.Unhealthy("RabbitMQ is unavailable.", ex));
+            return HealthCheckResult.Unhealthy("RabbitMQ is unavailable.", ex);
         }
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Npgsql;
 using UploadService.Infrastructure.Configuration.Options;
 
 namespace UploadService.Infrastructure.HealthChecks;
