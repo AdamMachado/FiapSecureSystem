@@ -1,7 +1,8 @@
 ﻿using ReportService.Application.Abstractions.Persistence;
 using ReportService.Application.Abstractions.Storage;
-using ReportService.Domain.Enums;
+using ReportService.Domain;
 using Shared.Kernel.Result;
+using ReportService.Domain.Enums;
 
 namespace ReportService.Application.UseCases.DownloadReport;
 

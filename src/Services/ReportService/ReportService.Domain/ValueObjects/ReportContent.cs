@@ -1,7 +1,7 @@
 using Shared.Kernel.Primitives;
-using FiapSecureSystem.ReportService.Domain.Exceptions;
+using ReportService.Domain.Exceptions;
 
-namespace FiapSecureSystem.ReportService.Domain.ValueObjects;
+namespace ReportService.Domain.ValueObjects;
 
 public sealed class ReportContent : ValueObject
 {

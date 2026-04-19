@@ -1,6 +1,6 @@
 using Shared.Kernel.Primitives;
 
-namespace FiapSecureSystem.ReportService.Domain.ValueObjects;
+namespace ReportService.Domain.ValueObjects;
 
 public sealed class ReportId : ValueObject
 {

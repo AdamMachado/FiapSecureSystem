@@ -1,7 +1,7 @@
 using Shared.Kernel.Primitives;
-using FiapSecureSystem.ReportService.Domain.ValueObjects;
+using ReportService.Domain.ValueObjects;
 
-namespace FiapSecureSystem.ReportService.Domain.Events;
+namespace ReportService.Domain.Events;
 
 public sealed class ReportGenerationFailedDomainEvent : DomainEvent
 {

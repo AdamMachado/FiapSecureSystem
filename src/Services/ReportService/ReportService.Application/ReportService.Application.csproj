@@ -7,7 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="UseCases\Consumed\" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
+    <ProjectReference Include="..\..\ProcessingService\ProcessingService.Domain\ProcessingService.Domain.csproj" />
+    <ProjectReference Include="..\..\UploadService\UploadService.Domain\UploadService.Domain.csproj" />
+    <ProjectReference Include="..\ReportService.Domain\ReportService.Domain.csproj" />
   </ItemGroup>
 
 </Project>
