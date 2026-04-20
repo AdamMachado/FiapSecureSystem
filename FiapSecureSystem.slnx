@@ -7,7 +7,6 @@
   <Folder Name="/infra/" />
   <Folder Name="/Solution Items/">
     <File Path=".env" />
-    <File Path="docker-compose.yaml" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />

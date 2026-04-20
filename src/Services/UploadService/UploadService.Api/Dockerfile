@@ -9,17 +9,17 @@ COPY ["src/Shared/Shared.Contracts/Shared.Contracts.csproj", "src/Shared/Shared.
 COPY ["src/Shared/Shared.Kernel/Shared.Kernel.csproj", "src/Shared/Shared.Kernel/"]
 COPY ["src/Shared/Shared.Observability/Shared.Observability.csproj", "src/Shared/Shared.Observability/"]
 
-COPY ["src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj", "src/UploadService/UploadService.Domain/"]
-COPY ["src/Services/UploadService/UploadService.Application/UploadService.Application.csproj", "src/UploadService/UploadService.Application/"]
-COPY ["src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "src/UploadService/UploadService.Infrastructure/"]
-COPY ["src/Services/UploadService/UploadService.Api/UploadService.Api.csproj", "src/UploadService/UploadService.Api/"]
+COPY ["src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj", "src/Services/UploadService/UploadService.Domain/"]
+COPY ["src/Services/UploadService/UploadService.Application/UploadService.Application.csproj", "src/Services/UploadService/UploadService.Application/"]
+COPY ["src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "src/Services/UploadService/UploadService.Infrastructure/"]
+COPY ["src/Services/UploadService/UploadService.Api/UploadService.Api.csproj", "src/Services/UploadService/UploadService.Api/"]
 
 RUN dotnet restore "src/Services/UploadService/UploadService.Api/UploadService.Api.csproj"
 
 # Copia o restante do código
 COPY . .
 
-WORKDIR /src/src/UploadService/UploadService.Api
+WORKDIR /src/src/Services/UploadService/UploadService.Api
 RUN dotnet publish "UploadService.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # =========================
