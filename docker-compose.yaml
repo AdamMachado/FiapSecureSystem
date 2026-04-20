@@ -13,6 +13,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      uploadservice-db-migrator:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       minio:
@@ -76,6 +78,23 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - soat-net
+
+  uploadservice-db-migrator:
+    container_name: uploadservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/UploadService/UploadService.Infrastructure/Dockerfile.migrator
+    image: uploadservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${DATABASE_SCHEMA}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
     networks:
       - soat-net
 

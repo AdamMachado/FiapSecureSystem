@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS migrator
+WORKDIR /src
+
+COPY ["src/Shared/Shared.Contracts/Shared.Contracts.csproj", "src/Shared/Shared.Contracts/"]
+COPY ["src/Shared/Shared.Kernel/Shared.Kernel.csproj", "src/Shared/Shared.Kernel/"]
+COPY ["src/Shared/Shared.Observability/Shared.Observability.csproj", "src/Shared/Shared.Observability/"]
+
+COPY ["src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj", "src/Services/UploadService/UploadService.Domain/"]
+COPY ["src/Services/UploadService/UploadService.Application/UploadService.Application.csproj", "src/Services/UploadService/UploadService.Application/"]
+COPY ["src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "src/Services/UploadService/UploadService.Infrastructure/"]
+COPY ["src/Services/UploadService/UploadService.Api/UploadService.Api.csproj", "src/Services/UploadService/UploadService.Api/"]
+
+RUN dotnet restore "src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj"
+
+COPY . .
+
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+WORKDIR /src
+
+ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "--startup-project", "src/Services/UploadService/UploadService.Api/UploadService.Api.csproj", "--context", "UploadDbContext"]
