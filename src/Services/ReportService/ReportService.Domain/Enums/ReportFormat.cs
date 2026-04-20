@@ -1,8 +1,8 @@
-namespace FiapSecureSystem.ReportService.Domain.Enums;
+namespace ReportService.Domain.Enums;
 
 public enum ReportFormat
 {
-    Json = 0,
-    Markdown = 1,
-    Pdf = 2
+    Json = 1,
+    Markdown = 2,
+    Pdf = 3
 }

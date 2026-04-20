@@ -1,6 +1,6 @@
 using Shared.Kernel.Exceptions;
 
-namespace FiapSecureSystem.ReportService.Domain.Exceptions;
+namespace ReportService.Domain.Exceptions;
 
 public sealed class ReportGenerationException : DomainException
 {

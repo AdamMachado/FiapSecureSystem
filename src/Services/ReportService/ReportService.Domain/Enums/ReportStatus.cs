@@ -1,9 +1,8 @@
-namespace FiapSecureSystem.ReportService.Domain.Enums;
+namespace ReportService.Domain.Enums;
 
 public enum ReportStatus
 {
-    Pending = 0,
-    Generating = 1,
+    Pending = 1,
     Generated = 2,
     Failed = 3
 }
