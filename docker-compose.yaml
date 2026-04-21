@@ -81,6 +81,23 @@ services:
     networks:
       - soat-net
 
+  pgadmin:
+    container_name: uploadservice-pgadmin
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - soat-net
+
   uploadservice-db-migrator:
     container_name: uploadservice-db-migrator
     build:
@@ -159,18 +176,18 @@ services:
     networks:
       - soat-net
 
-  # otel-collector:
-  #   container_name: uploadservice-otel-collector
-  #   image: otel/opentelemetry-collector:0.101.0
-  #   restart: unless-stopped
-  #   command: ["--config=/etc/otelcol/config.yaml"]
-  #   volumes:
-  #     - ./deploy/otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
-  #   ports:
-  #     - "${OTEL_GRPC_PORT}:4317"
-  #     - "${OTEL_HTTP_PORT}:4318"
-  #   networks:
-  #     - soat-net
+  otel-collector:
+    container_name: uploadservice-otel-collector
+    image: otel/opentelemetry-collector:0.101.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./deploy/otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT}:4317"
+      - "${OTEL_HTTP_PORT}:4318"
+    networks:
+      - soat-net
 
 networks:
   soat-net:
@@ -180,3 +197,4 @@ volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+  pgadmin_data:
