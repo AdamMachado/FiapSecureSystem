@@ -28,3 +28,8 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+.idea
+docker-data
+deploy/otel
+*.user
+*.suo

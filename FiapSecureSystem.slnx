@@ -1,6 +1,14 @@
 <Solution>
+  <Folder Name="/deploy/" />
+  <Folder Name="/deploy/otel/">
+    <File Path="deploy/otel/otel-collector-config.yaml" />
+  </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/infra/" />
+  <Folder Name="/Solution Items/">
+    <File Path=".env" />
+    <File Path="docker-compose.yaml" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/ProcessingService/">
