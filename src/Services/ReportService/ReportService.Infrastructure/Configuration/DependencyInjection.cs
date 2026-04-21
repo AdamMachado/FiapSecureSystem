@@ -26,6 +26,8 @@ using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
 using System.Runtime.Serialization;
+using ReportService.Application.Abstractions.Clock;
+using ReportService.Infrastructure.Clock;
 
 namespace ReportService.Infrastructure.Configuration;
 
@@ -42,6 +44,8 @@ public static class DependencyInjection
         services.Configure<MinIoOptions>(configuration.GetSection(MinIoOptions.SectionName));
 
         services.AddCorrelationContext();
+
+        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddDbContext<ReportDbContext>((sp, options) =>
         {
