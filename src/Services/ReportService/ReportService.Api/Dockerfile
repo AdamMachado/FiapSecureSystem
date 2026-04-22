@@ -1,30 +1,37 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-
-# This stage is used to build the service project
+# =========================
+# BUILD STAGE
+# =========================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["ReportService.Api/ReportService.Api.csproj", "ReportService.Api/"]
-RUN dotnet restore "./ReportService.Api/ReportService.Api.csproj"
+
+# Copia os arquivos de projeto primeiro para aproveitar cache de restore
+COPY ["src/Shared/Shared.Contracts/Shared.Contracts.csproj", "src/Shared/Shared.Contracts/"]
+COPY ["src/Shared/Shared.Kernel/Shared.Kernel.csproj", "src/Shared/Shared.Kernel/"]
+COPY ["src/Shared/Shared.Observability/Shared.Observability.csproj", "src/Shared/Shared.Observability/"]
+
+COPY ["src/Services/ReportService/ReportService.Domain/ReportService.Domain.csproj", "src/Services/ReportService/ReportService.Domain/"]
+COPY ["src/Services/ReportService/ReportService.Application/ReportService.Application.csproj", "src/Services/ReportService/ReportService.Application/"]
+COPY ["src/Services/ReportService/ReportService.Infrastructure/ReportService.Infrastructure.csproj", "src/Services/ReportService/ReportService.Infrastructure/"]
+COPY ["src/Services/ReportService/ReportService.Api/ReportService.Api.csproj", "src/Services/ReportService/ReportService.Api/"]
+
+RUN dotnet restore "src/Services/ReportService/ReportService.Api/ReportService.Api.csproj"
+
+# Copia o restante do código
 COPY . .
-WORKDIR "/src/ReportService.Api"
-RUN dotnet build "./ReportService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# This stage is used to publish the service project to be copied to the final stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ReportService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+WORKDIR /src/src/Services/ReportService/ReportService.Api
+RUN dotnet publish "ReportService.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base AS final
+# =========================
+# RUNTIME STAGE
+# =========================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+
+EXPOSE 8080
+
+COPY --from=build /app/publish .
+
 ENTRYPOINT ["dotnet", "ReportService.Api.dll"]
