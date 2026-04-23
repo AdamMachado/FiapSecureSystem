@@ -35,5 +35,7 @@
     <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj" />
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/ReportService.Application.Tests/ReportService.Application.Tests.csproj" />
+  </Folder>
 </Solution>
