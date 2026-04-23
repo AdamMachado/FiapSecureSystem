@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using UploadService.Infrastructure.Configuration.Options;
 
 namespace UploadService.Infrastructure.Persistence.Context;
@@ -28,6 +29,8 @@ public sealed class UploadDbContextFactory : IDesignTimeDbContextFactory<UploadD
             databaseOptions.ConnectionString,
             npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", databaseOptions.Schema));
 
-        return new UploadDbContext(optionsBuilder.Options);
+        var databaseOptionsWrapper = Options.Create(databaseOptions);
+
+        return new UploadDbContext(optionsBuilder.Options, databaseOptionsWrapper);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace UploadService.Application.Abstractions.Storage;
+﻿using UploadService.Domain.ValueObjects;
+
+namespace UploadService.Application.Abstractions.Storage;
 
 public interface IObjectStorage
 {
