@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0
+# build do bundle
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
@@ -14,9 +15,26 @@ RUN dotnet restore "src/Services/UploadService/UploadService.Infrastructure/Uplo
 COPY . .
 
 WORKDIR /src/src/Services/UploadService/UploadService.Infrastructure
-RUN dotnet build "UploadService.Infrastructure.csproj" -c Release --no-restore
 
 RUN dotnet tool install --global dotnet-ef --version 10.*
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
-ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "/src/src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "--startup-project", "/src/src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj", "--context", "UploadDbContext", "--configuration", "Release", "--no-build"]
+# Para Alpine use linux-musl-x64. Para imagem Debian/Ubuntu use linux-x64.
+RUN dotnet ef migrations bundle \
+    --project /src/src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj \
+    --startup-project /src/src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj \
+    --context UploadDbContext \
+    --configuration Release \
+    --self-contained \
+    -r linux-musl-x64 \
+    -o /out/efbundle
+
+# imagem final mínima
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS final
+
+WORKDIR /app
+COPY --from=build /out/efbundle ./efbundle
+
+RUN chmod +x ./efbundle
+
+ENTRYPOINT ["./efbundle"]

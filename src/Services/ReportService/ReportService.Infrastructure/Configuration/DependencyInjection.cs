@@ -25,7 +25,6 @@ using ReportService.Infrastructure.Storage.MinIO;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
-using System.Runtime.Serialization;
 using ReportService.Application.Abstractions.Clock;
 using ReportService.Infrastructure.Clock;
 

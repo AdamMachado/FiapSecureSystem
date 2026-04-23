@@ -1,21 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ReportService.Domain.Entities;
+using ReportService.Infrastructure.Configuration.Options;
 using System.Reflection.Emit;
 
 namespace ReportService.Infrastructure.Persistence.Context;
 
 public sealed class ReportDbContext : DbContext
 {
-    public ReportDbContext(DbContextOptions<ReportDbContext> options)
+    private readonly string _schema;
+
+    public ReportDbContext(DbContextOptions<ReportDbContext> options, IOptions<DatabaseOptions> databaseOptions)
         : base(options)
     {
+        _schema = databaseOptions.Value.Schema;
     }
 
     public DbSet<AnalysisReport> AnalysisReports => Set<AnalysisReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("report");
+        modelBuilder.HasDefaultSchema(_schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ReportDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
     }

@@ -1,5 +1,7 @@
 ﻿using Shared.Kernel.Primitives;
 
+namespace UploadService.Domain.ValueObjects;
+
 public sealed class StorageLocation : ValueObject
 {
     public string BucketName { get; }

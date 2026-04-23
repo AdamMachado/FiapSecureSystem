@@ -17,6 +17,8 @@ services:
         condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
       minio:
         condition: service_healthy
       minio-init:
@@ -61,7 +63,7 @@ services:
       - soat-net
 
   postgres:
-    container_name: uploadservice-postgres
+    container_name: fiapsecure-postgres
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -82,7 +84,7 @@ services:
       - soat-net
 
   pgadmin:
-    container_name: uploadservice-pgadmin
+    container_name: fiapsecure-pgadmin
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     depends_on:
@@ -116,7 +118,7 @@ services:
       - soat-net
 
   rabbitmq:
-    container_name: uploadservice-rabbitmq
+    container_name: fiapsecure-rabbitmq
     image: rabbitmq:3.13-management
     restart: unless-stopped
     environment:
@@ -137,8 +139,27 @@ services:
     networks:
       - soat-net
 
+  rabbitmq-init:
+    container_name: fiapsecure-rabbitmq-init
+    image: curlimages/curl:8.8.0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_MANAGEMENT_PORT: 15672
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+    volumes:
+      - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
+    entrypoint: ["/bin/sh", "/init-rabbitmq.sh"]
+    restart: "no"
+    networks:
+      - soat-net
+
   minio:
-    container_name: uploadservice-minio
+    container_name: fiapsecure-minio
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -160,7 +181,7 @@ services:
       - soat-net
 
   minio-init:
-    container_name: uploadservice-minio-init
+    container_name: fiapsecure-minio-init
     image: minio/mc:latest
     depends_on:
       minio:
@@ -177,7 +198,7 @@ services:
       - soat-net
 
   otel-collector:
-    container_name: uploadservice-otel-collector
+    container_name: fiapsecure-otel-collector
     image: otel/opentelemetry-collector:0.101.0
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
