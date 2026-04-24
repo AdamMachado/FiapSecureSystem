@@ -32,9 +32,12 @@ RUN dotnet ef migrations bundle \
 # imagem final mínima
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS final
 
+RUN apk add --no-cache krb5-libs
+
 WORKDIR /app
 COPY --from=build /out/efbundle ./efbundle
 
 RUN chmod +x ./efbundle
 
-ENTRYPOINT ["./efbundle"]
+# ENTRYPOINT ["./efbundle"]
+ENTRYPOINT ["/bin/sh", "-c", "for i in 1 2 3 4 5 6 7 8 9 10; do ./efbundle && exit 0; echo 'Postgres ainda não disponível, tentando novamente...'; sleep 5; done; exit 1"]

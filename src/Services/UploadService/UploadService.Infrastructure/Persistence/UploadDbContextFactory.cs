@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using UploadService.Infrastructure.Configuration.Options;
 
@@ -10,18 +9,26 @@ public sealed class UploadDbContextFactory : IDesignTimeDbContextFactory<UploadD
 {
     public UploadDbContext CreateDbContext(string[] args)
     {
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var connectionString =
+            Environment.GetEnvironmentVariable("Database__ConnectionString")
+            ?? "Host=localhost;Port=5432;Database=uploadservice;Username=postgres;Password=postgres";
 
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+        var schema =
+            Environment.GetEnvironmentVariable("Database__Schema")
+            ?? "upload";
 
-        var databaseOptions = configuration
-            .GetSection(DatabaseOptions.SectionName)
-            .Get<DatabaseOptions>() ?? throw new InvalidOperationException("Database configuration not found.");
+        var enableSensitiveDataLogging =
+            bool.TryParse(
+                Environment.GetEnvironmentVariable("Database__EnableSensitiveDataLogging"),
+                out var parsed)
+                && parsed;
+
+        var databaseOptions = new DatabaseOptions
+        {
+            ConnectionString = connectionString,
+            Schema = schema,
+            EnableSensitiveDataLogging = enableSensitiveDataLogging
+        };
 
         var optionsBuilder = new DbContextOptionsBuilder<UploadDbContext>();
 
@@ -29,8 +36,9 @@ public sealed class UploadDbContextFactory : IDesignTimeDbContextFactory<UploadD
             databaseOptions.ConnectionString,
             npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", databaseOptions.Schema));
 
-        var databaseOptionsWrapper = Options.Create(databaseOptions);
+        if (databaseOptions.EnableSensitiveDataLogging)
+            optionsBuilder.EnableSensitiveDataLogging();
 
-        return new UploadDbContext(optionsBuilder.Options, databaseOptionsWrapper);
+        return new UploadDbContext(optionsBuilder.Options, Options.Create(databaseOptions));
     }
 }
