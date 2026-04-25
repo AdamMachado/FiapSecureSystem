@@ -6,7 +6,6 @@ using Shared.Observability.Telemetry;
 using UploadService.Api.Configuration;
 using UploadService.Api.DependencyInjection;
 using UploadService.Api.Middlewares;
-using UploadService.Application;
 using UploadService.Infrastructure.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,14 +13,17 @@ var builder = WebApplication.CreateBuilder(args);
 var projectIdentifier = "UploadService.Api";
 
 builder.Services.AddSharedSerilog(builder.Configuration, projectIdentifier);
+
+builder.Services.AddSharedOpenTelemetry(
+    builder.Configuration,
+    projectIdentifier,
+    ActivitySources.UploadService);
+
+builder.Services.AddUploadProblemDetails();
+builder.Services.AddUploadSwagger();
+
 builder.Services
-    .AddUploadApi()
-    .AddUploadProblemDetails()
-    .AddUploadSwagger()
-    .AddSharedOpenTelemetry(
-        builder.Configuration,
-        projectIdentifier,
-        ActivitySources.UploadService)
+    .AddUploadApiServices(builder.Configuration)
     .AddUploadInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -32,6 +34,8 @@ app.UseCorrelationContext();
 
 if (app.Environment.IsDevelopment())
     app.UseUploadSwagger();
+
+//app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.MapControllers();

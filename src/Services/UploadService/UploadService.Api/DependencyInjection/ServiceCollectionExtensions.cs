@@ -4,15 +4,15 @@ using System.Text.Json.Serialization;
 using UploadService.Api.Middlewares;
 using UploadService.Api.Services;
 using UploadService.Application.Abstractions.Clock;
-using UploadService.Application.UseCases.CreateAnalysis;
-using UploadService.Application.UseCases.GetAnalysisStatus;
-using UploadService.Application.UseCases.UpdateAnalysisStatus;
+using UploadService.Application;
 
 namespace UploadService.Api.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUploadApi(this IServiceCollection services)
+    public static IServiceCollection AddUploadApiServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
@@ -24,10 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ExceptionHandlingMiddleware>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
-        services.AddScoped<CreateAnalysisValidator>();
-        services.AddScoped<CreateAnalysisHandler>();
-        services.AddScoped<GetAnalysisStatusHandler>();
-        services.AddScoped<UpdateAnalysisStatusHandler>();
+        services.AddUploadApplication();
 
         return services;
     }

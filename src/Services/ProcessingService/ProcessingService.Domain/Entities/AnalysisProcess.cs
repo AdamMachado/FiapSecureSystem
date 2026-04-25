@@ -35,7 +35,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
         SourceFileLocation = sourceFileLocation;
         DiagramType = diagramType;
         Status = ProcessingStatus.Pending;
-        DiscoverySource = ComponentDiscoverySource.Unknown;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
     }
@@ -45,7 +44,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
     public SourceFileLocation SourceFileLocation { get; private set; } = default!;
     public DiagramType DiagramType { get; private set; }
     public ProcessingStatus Status { get; private set; }
-    public ComponentDiscoverySource DiscoverySource { get; private set; }
     public ExtractedText? ExtractedText { get; private set; }
     public ProcessingResultSummary? ResultSummary { get; private set; }
     public string? FailureReason { get; private set; }
@@ -108,7 +106,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
         IReadOnlyCollection<ArchitecturalRiskDto> risks,
         IReadOnlyCollection<ArchitecturalRecommendationDto> recommendations,
         ProcessingResultSummary resultSummary,
-        ComponentDiscoverySource discoverySource,
         DateTime completedAtUtc)
     {
         EnsureCanTransitionToCompleted();
@@ -116,7 +113,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
 
         ExtractedText = extractedText;
         ResultSummary = resultSummary;
-        DiscoverySource = discoverySource;
         FailureReason = null;
         FailureDetails = null;
 
@@ -138,7 +134,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
             AnalysisRequestId,
             RequestedByUserId,
             DiagramType,
-            discoverySource,
             extractedText,
             Components,
             Risks,
@@ -176,7 +171,6 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
             throw new DiagramProcessingException("Only failed analysis processes can be reset for retry.");
 
         Status = ProcessingStatus.Pending;
-        DiscoverySource = ComponentDiscoverySource.Unknown;
         FailureReason = null;
         FailureDetails = null;
         StartedAtUtc = null;

@@ -12,7 +12,6 @@ public sealed class AnalysisProcessingCompletedDomainEvent : DomainEvent
         AnalysisRequestId analysisRequestId,
         Guid requestedByUserId,
         DiagramType diagramType,
-        ComponentDiscoverySource discoverySource,
         ExtractedText extractedText,
         IReadOnlyCollection<IdentifiedComponentDto> components,
         IReadOnlyCollection<ArchitecturalRiskDto> risks,
@@ -24,7 +23,6 @@ public sealed class AnalysisProcessingCompletedDomainEvent : DomainEvent
         AnalysisRequestId = analysisRequestId;
         RequestedByUserId = requestedByUserId;
         DiagramType = diagramType;
-        DiscoverySource = discoverySource;
         ExtractedText = extractedText;
         Components = components;
         Risks = risks;
@@ -37,7 +35,6 @@ public sealed class AnalysisProcessingCompletedDomainEvent : DomainEvent
     public AnalysisRequestId AnalysisRequestId { get; }
     public Guid RequestedByUserId { get; }
     public DiagramType DiagramType { get; }
-    public ComponentDiscoverySource DiscoverySource { get; }
     public ExtractedText ExtractedText { get; }
     public IReadOnlyCollection<IdentifiedComponentDto> Components { get; }
     public IReadOnlyCollection<ArchitecturalRiskDto> Risks { get; }

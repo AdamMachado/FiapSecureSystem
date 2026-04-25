@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace ReportService.Application;
+namespace ProcessingService.Application;
 
 public static class AssemblyReference
 {
