@@ -1,5 +1,6 @@
 using ProcessingService.Application.Abstractions.Persistence;
 using ProcessingService.Application.Mappings;
+using ProcessingService.Domain.ValueObjects;
 using Shared.Kernel.Result;
 
 namespace ProcessingService.Application.UseCases.GetProcessingResult;
@@ -17,7 +18,10 @@ public sealed class GetProcessingResultHandler
         GetProcessingResultQuery query,
         CancellationToken cancellationToken = default)
     {
-        var process = await _repository.GetByAnalysisRequestIdAsync(query.AnalysisRequestId, cancellationToken);
+        var process = await _repository.GetByAnalysisRequestIdAsync(
+            AnalysisRequestId.Create(query.AnalysisRequestId), 
+            cancellationToken);
+
         if (process is null)
         {
             return Result.Failure<GetProcessingResultResult>(

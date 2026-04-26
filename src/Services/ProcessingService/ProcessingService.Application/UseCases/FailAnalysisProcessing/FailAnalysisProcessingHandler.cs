@@ -2,6 +2,7 @@ using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.Abstractions.Persistence;
 using ProcessingService.Domain.Events;
+using ProcessingService.Domain.ValueObjects;
 using Shared.Kernel.Result;
 
 namespace ProcessingService.Application.UseCases.FailAnalysisProcessing;
@@ -34,7 +35,10 @@ public sealed class FailAnalysisProcessingHandler
         FailAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
-        var process = await _repository.GetByAnalysisRequestIdAsync(command.AnalysisRequestId, cancellationToken);
+        var process = await _repository.GetByAnalysisRequestIdAsync(
+            AnalysisRequestId.Create(command.AnalysisRequestId), 
+            cancellationToken);
+
         if (process is null)
         {
             return Result.Failure<FailAnalysisProcessingResult>(

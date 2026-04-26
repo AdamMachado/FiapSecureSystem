@@ -57,7 +57,11 @@ public sealed class StartAnalysisProcessingHandler
         StartAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (await _repository.ExistsByAnalysisRequestIdAsync(command.AnalysisRequestId, cancellationToken))
+        var analysisExists = await _repository.ExistsByAnalysisRequestIdAsync(
+            AnalysisRequestId.Create(command.AnalysisRequestId), 
+            cancellationToken);
+
+        if (analysisExists)
         {
             return Result.Failure<StartAnalysisProcessingResult>(
                 Error.Conflict(

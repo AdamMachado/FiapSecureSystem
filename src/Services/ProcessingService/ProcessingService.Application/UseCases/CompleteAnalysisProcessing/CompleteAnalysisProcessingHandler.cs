@@ -35,7 +35,10 @@ public sealed class CompleteAnalysisProcessingHandler
         CompleteAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
-        var process = await _repository.GetByAnalysisRequestIdAsync(command.AnalysisRequestId, cancellationToken);
+        var process = await _repository.GetByAnalysisRequestIdAsync(
+            AnalysisRequestId.Create(command.AnalysisRequestId), 
+            cancellationToken);
+
         if (process is null)
         {
             return Result.Failure<CompleteAnalysisProcessingResult>(
