@@ -1,6 +1,6 @@
 using UploadService.Application.Abstractions.Clock;
 
-namespace UploadService.Api.Services;
+namespace UploadService.Infrastructure.Clock;
 
 public sealed class SystemDateTimeProvider : IDateTimeProvider
 {

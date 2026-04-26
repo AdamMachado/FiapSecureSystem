@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using UploadService.Api.Middlewares;
-using UploadService.Api.Services;
-using UploadService.Application.Abstractions.Clock;
 using UploadService.Application;
+using UploadService.Application.Abstractions.Clock;
+using UploadService.Infrastructure.Clock;
 
 namespace UploadService.Api.DependencyInjection;
 
