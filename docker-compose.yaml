@@ -28,7 +28,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      Database__Schema: ${DATABASE_SCHEMA}
+      Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
       RabbitMq__Host: rabbitmq
@@ -36,7 +36,7 @@ services:
       RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
       RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
-      RabbitMq__ClientProvidedName: ${RABBITMQ_CLIENT_PROVIDED_NAME}
+      RabbitMq__ClientProvidedName: ${RABBITMQ_UPLOAD_CLIENT_PROVIDED_NAME}
       RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
       RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
 
@@ -60,6 +60,53 @@ services:
     networks:
       - soat-net
 
+  processingservice-worker:
+    container_name: processingservice-worker
+    build:
+      context: .
+      dockerfile: ProcessingService/ProcessingService.Worker/Dockerfile
+    image: processingservice-worker:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      processingservice-db-migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DOTNET_ENVIRONMENT: Development
+
+      Database__ConnectionString: Host=postgres;Port=5432;Database=fiap_secure_systems;Username=postgres;Password=postgres
+      Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
+
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
+      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
+      RabbitMq__ClientProvidedName: ${RABBITMQ_PROCESSING_CLIENT_PROVIDED_NAME}
+      RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
+      RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
+
+      MinIo__Endpoint: minio:9000
+      MinIo__AccessKey: ${MINIO_ROOT_USER}
+      MinIo__SecretKey: ${MINIO_ROOT_PASSWORD}
+      MinIo__UseSsl: ${MINIO_USE_SSL}
+
+      OpenAI__ApiKey: ${OPENAI_API_KEY}
+      OpenAI__Model: gpt-4o
+      OpenAI__ServiceTier: flex
+    networks:
+      - soat-net
+
   postgres:
     container_name: fiapsecure-postgres
     image: postgres:16-alpine
@@ -73,7 +120,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      #test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres && psql -U ${POSTGRES_USER} -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\" | grep -q 1"]
       interval: 10s
       timeout: 5s
@@ -110,8 +156,26 @@ services:
         condition: service_healthy
     environment:
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      Database__Schema: ${DATABASE_SCHEMA}
+      Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
+    networks:
+      - soat-net
+
+  processingservice-db-migrator:
+    container_name: processingservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/ProcessingService/ProcessingService.Infrastructure/Dockerfile.migrator
+    image: processingservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
     networks:
       - soat-net

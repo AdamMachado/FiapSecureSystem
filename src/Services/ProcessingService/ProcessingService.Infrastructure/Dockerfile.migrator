@@ -1,0 +1,44 @@
+# build do bundle
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+COPY ["src/Shared/Shared.Contracts/Shared.Contracts.csproj", "src/Shared/Shared.Contracts/"]
+COPY ["src/Shared/Shared.Kernel/Shared.Kernel.csproj", "src/Shared/Shared.Kernel/"]
+COPY ["src/Shared/Shared.Observability/Shared.Observability.csproj", "src/Shared/Shared.Observability/"]
+
+COPY ["src/Services/ProcessingService/ProcessingService.Domain/ProcessingService.Domain.csproj", "src/Services/ProcessingService/ProcessingService.Domain/"]
+COPY ["src/Services/ProcessingService/ProcessingService.Application/ProcessingService.Application.csproj", "src/Services/ProcessingService/ProcessingService.Application/"]
+COPY ["src/Services/ProcessingService/ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj", "src/Services/ProcessingService/ProcessingService.Infrastructure/"]
+
+RUN dotnet restore "src/Services/ProcessingService/ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj"
+
+COPY . .
+
+WORKDIR /src/src/Services/ProcessingService/ProcessingService.Infrastructure
+
+RUN dotnet tool install --global dotnet-ef --version 10.*
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Para Alpine use linux-musl-x64. Para imagem Debian/Ubuntu use linux-x64.
+RUN dotnet ef migrations bundle \
+    --project /src/src/Services/ProcessingService/ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj \
+    --startup-project /src/src/Services/ProcessingService/ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj \
+    --context ProcessingDbContext \
+    --configuration Release \
+    --self-contained \
+    -r linux-musl-x64 \
+    -o /out/efbundle
+
+# imagem final mínima
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS final
+
+# Necessário para Npgsql/Kerberos em Alpine em alguns ambientes.
+RUN apk add --no-cache krb5-libs
+
+WORKDIR /app
+COPY --from=build /out/efbundle ./efbundle
+
+RUN chmod +x ./efbundle
+
+ENTRYPOINT ["/bin/sh", "-c", "for i in 1 2 3 4 5 6 7 8 9 10; do ./efbundle && exit 0; echo 'Postgres ainda não disponível, tentando novamente...'; sleep 5; done; exit 1"]

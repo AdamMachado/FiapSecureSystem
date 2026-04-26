@@ -5,14 +5,17 @@ using ProcessingService.Domain.ValueObjects;
 using Shared.Contracts.IntegrationEvents.Schemas;
 using Shared.Kernel.Exceptions;
 using Shared.Kernel.Primitives;
+using System.Text.Json;
 
 namespace ProcessingService.Domain.Entities;
 
 public sealed class AnalysisProcess : AggregateRoot<Guid>
 {
-    private readonly List<IdentifiedComponentDto> _components = new();
-    private readonly List<ArchitecturalRiskDto> _risks = new();
-    private readonly List<ArchitecturalRecommendationDto> _recommendations = new();
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private string _componentsJson = "[]";
+    private string _risksJson = "[]";
+    private string _recommendationsJson = "[]";
 
     private AnalysisProcess()
     {
@@ -53,9 +56,18 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
     public DateTime? StartedAtUtc { get; private set; }
     public DateTime? CompletedAtUtc { get; private set; }
     public DateTime? FailedAtUtc { get; private set; }
-    public IReadOnlyCollection<IdentifiedComponentDto> Components => _components.AsReadOnly();
-    public IReadOnlyCollection<ArchitecturalRiskDto> Risks => _risks.AsReadOnly();
-    public IReadOnlyCollection<ArchitecturalRecommendationDto> Recommendations => _recommendations.AsReadOnly();
+
+    public IReadOnlyCollection<IdentifiedComponentDto> Components =>
+        JsonSerializer.Deserialize<IReadOnlyCollection<IdentifiedComponentDto>>(_componentsJson, JsonOptions)
+        ?? Array.Empty<IdentifiedComponentDto>();
+
+    public IReadOnlyCollection<ArchitecturalRiskDto> Risks =>
+        JsonSerializer.Deserialize<IReadOnlyCollection<ArchitecturalRiskDto>>(_risksJson, JsonOptions)
+        ?? Array.Empty<ArchitecturalRiskDto>();
+
+    public IReadOnlyCollection<ArchitecturalRecommendationDto> Recommendations =>
+        JsonSerializer.Deserialize<IReadOnlyCollection<ArchitecturalRecommendationDto>>(_recommendationsJson, JsonOptions)
+        ?? Array.Empty<ArchitecturalRecommendationDto>();
 
     public static AnalysisProcess Create(
         Guid id,
@@ -116,14 +128,9 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
         FailureReason = null;
         FailureDetails = null;
 
-        _components.Clear();
-        _components.AddRange(components);
-
-        _risks.Clear();
-        _risks.AddRange(risks);
-
-        _recommendations.Clear();
-        _recommendations.AddRange(recommendations);
+        _componentsJson = JsonSerializer.Serialize(components ?? Array.Empty<IdentifiedComponentDto>(), JsonOptions);
+        _risksJson = JsonSerializer.Serialize(risks ?? Array.Empty<ArchitecturalRiskDto>(), JsonOptions);
+        _recommendationsJson = JsonSerializer.Serialize(recommendations ?? Array.Empty<ArchitecturalRecommendationDto>(), JsonOptions);
 
         Status = ProcessingStatus.Completed;
         CompletedAtUtc = completedAtUtc;
@@ -178,9 +185,9 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
         FailedAtUtc = null;
         ExtractedText = null;
         ResultSummary = null;
-        _components.Clear();
-        _risks.Clear();
-        _recommendations.Clear();
+        _componentsJson = "[]";
+        _risksJson = "[]";
+        _recommendationsJson = "[]";
         UpdatedAtUtc = updatedAtUtc;
     }
 

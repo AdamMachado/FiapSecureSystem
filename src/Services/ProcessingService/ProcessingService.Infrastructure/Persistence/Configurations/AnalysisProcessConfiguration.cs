@@ -17,16 +17,20 @@ public sealed class AnalysisProcessConfiguration : IEntityTypeConfiguration<Anal
         builder.ToTable("analysis_processes");
 
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).ValueGeneratedNever();
 
-        builder.OwnsOne(x => x.AnalysisRequestId, requestId =>
-        {
-            requestId.Property(x => x.Value)
-                .HasColumnName("analysis_request_id")
-                .IsRequired();
-        });
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
 
-        builder.Property(x => x.RequestedByUserId).IsRequired();
+        builder.Property(x => x.AnalysisRequestId)
+            .HasConversion(
+                value => value.Value,
+                value => AnalysisRequestId.Create(value))
+            .HasColumnName("analysis_request_id")
+            .IsRequired()
+            .Metadata.SetValueComparer(CreateAnalysisRequestIdComparer());
+
+        builder.Property(x => x.RequestedByUserId)
+            .IsRequired();
 
         builder.OwnsOne(x => x.SourceFileLocation, location =>
         {
@@ -78,50 +82,65 @@ public sealed class AnalysisProcessConfiguration : IEntityTypeConfiguration<Anal
                 .HasColumnName("summary_warnings")
                 .HasColumnType("jsonb")
                 .HasConversion(
-                    value => JsonSerializer.Serialize(value, JsonSerializerOptions),
-                    value => JsonSerializer.Deserialize<IReadOnlyCollection<string>>(value, JsonSerializerOptions) ?? Array.Empty<string>())
+                    warnings => JsonSerializer.Serialize(warnings, JsonSerializerOptions),
+                    json => JsonSerializer.Deserialize<List<string>>(json, JsonSerializerOptions) ?? new List<string>())
                 .Metadata.SetValueComparer(CreateStringCollectionComparer());
         });
 
-        builder.Property(x => x.FailureReason).HasMaxLength(1000);
-        builder.Property(x => x.FailureDetails).HasColumnType("text");
+        builder.Property(x => x.FailureReason)
+            .HasMaxLength(1000);
 
-        builder.Property(x => x.CreatedAtUtc).IsRequired();
-        builder.Property(x => x.UpdatedAtUtc).IsRequired();
+        builder.Property(x => x.FailureDetails)
+            .HasColumnType("text");
+
+        builder.Property(x => x.CreatedAtUtc)
+            .IsRequired();
+
+        builder.Property(x => x.UpdatedAtUtc)
+            .IsRequired();
+
         builder.Property(x => x.StartedAtUtc);
         builder.Property(x => x.CompletedAtUtc);
         builder.Property(x => x.FailedAtUtc);
 
-        builder.Property<List<IdentifiedComponentDto>>("_components")
+        builder.Ignore(x => x.Components);
+        builder.Ignore(x => x.Risks);
+        builder.Ignore(x => x.Recommendations);
+
+        builder.Property<string>("_componentsJson")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasColumnName("components")
             .HasColumnType("jsonb")
-            .HasConversion(
-                value => JsonSerializer.Serialize(value, JsonSerializerOptions),
-                value => JsonSerializer.Deserialize<List<IdentifiedComponentDto>>(value, JsonSerializerOptions) ?? new List<IdentifiedComponentDto>())
-            .Metadata.SetValueComparer(CreateCollectionComparer<IdentifiedComponentDto>());
+            .IsRequired();
 
-        builder.Property<List<ArchitecturalRiskDto>>("_risks")
+        builder.Property<string>("_risksJson")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasColumnName("risks")
             .HasColumnType("jsonb")
-            .HasConversion(
-                value => JsonSerializer.Serialize(value, JsonSerializerOptions),
-                value => JsonSerializer.Deserialize<List<ArchitecturalRiskDto>>(value, JsonSerializerOptions) ?? new List<ArchitecturalRiskDto>())
-            .Metadata.SetValueComparer(CreateCollectionComparer<ArchitecturalRiskDto>());
+            .IsRequired();
 
-        builder.Property<List<ArchitecturalRecommendationDto>>("_recommendations")
+        builder.Property<string>("_recommendationsJson")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasColumnName("recommendations")
             .HasColumnType("jsonb")
-            .HasConversion(
-                value => JsonSerializer.Serialize(value, JsonSerializerOptions),
-                value => JsonSerializer.Deserialize<List<ArchitecturalRecommendationDto>>(value, JsonSerializerOptions) ?? new List<ArchitecturalRecommendationDto>())
-            .Metadata.SetValueComparer(CreateCollectionComparer<ArchitecturalRecommendationDto>());
+            .IsRequired();
 
         builder.Ignore(x => x.DomainEvents);
 
-        builder.HasIndex("AnalysisRequestId_Value").IsUnique();
+        builder.HasIndex(x => x.AnalysisRequestId)
+            .HasDatabaseName("ix_analysis_processes_analysis_request_id");
+
         builder.HasIndex(x => x.RequestedByUserId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.CreatedAtUtc);
+    }
+
+    private static ValueComparer<AnalysisRequestId> CreateAnalysisRequestIdComparer()
+    {
+        return new ValueComparer<AnalysisRequestId>(
+            (left, right) => left != null && right != null && left.Value == right.Value,
+            value => value.Value.GetHashCode(),
+            value => AnalysisRequestId.Create(value.Value));
     }
 
     private static ValueComparer<List<T>> CreateCollectionComparer<T>()
