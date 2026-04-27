@@ -27,7 +27,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -86,7 +86,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${REPORT_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -136,7 +136,7 @@ services:
     environment:
       DOTNET_ENVIRONMENT: Development
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=fiap_secure_systems;Username=postgres;Password=postgres
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -212,7 +212,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
@@ -229,7 +229,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${REPORT_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
@@ -248,7 +248,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
