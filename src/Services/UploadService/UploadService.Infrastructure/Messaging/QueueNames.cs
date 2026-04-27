@@ -2,8 +2,7 @@ namespace UploadService.Infrastructure.Messaging;
 
 public static class QueueNames
 {
-    public const string AnalysisRequested = "analysis.requested";
-    public const string AnalysisStarted = "analysis.started";
-    public const string AnalysisCompleted = "analysis.completed";
-    public const string AnalysisFailed = "analysis.failed";
+    public const string AnalysisStarted = "upload.analysis.started";
+    public const string AnalysisCompleted = "upload.analysis.completed";
+    public const string AnalysisFailed = "upload.analysis.failed";
 }

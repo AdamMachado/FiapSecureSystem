@@ -59,12 +59,65 @@ services:
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
       - soat-net
+ 
+  reportservice-api:
+    container_name: reportservice-api
+    build:
+      context: .
+      dockerfile: src/Services/ReportService/ReportService.Api/Dockerfile
+    image: reportservice-api:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      reportservice-db-migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${REPORT_API_PORT}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${REPORT_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
+
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
+      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
+      RabbitMq__ClientProvidedName: ${RABBITMQ_REPORT_CLIENT_PROVIDED_NAME}
+      RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
+      RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
+
+      Storage__BucketName: ${MINIO_REPORT_BUCKET_NAME}
+      Storage__AutoCreateBucket: ${STORAGE_AUTO_CREATE_BUCKET}
+
+      MinIo__Endpoint: minio:9000
+      MinIo__AccessKey: ${MINIO_ROOT_USER}
+      MinIo__SecretKey: ${MINIO_ROOT_PASSWORD}
+      MinIo__UseSsl: ${MINIO_USE_SSL}
+
+      OpenTelemetry__ServiceName: ReportService.Api
+      OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    networks:
+      - soat-net
 
   processingservice-worker:
     container_name: processingservice-worker
     build:
       context: .
-      dockerfile: ProcessingService/ProcessingService.Worker/Dockerfile
+      dockerfile: src/Services/ProcessingService/ProcessingService.Worker/Dockerfile
     image: processingservice-worker:local
     restart: unless-stopped
     depends_on:
@@ -162,6 +215,25 @@ services:
     networks:
       - soat-net
 
+  reportservice-db-migrator:
+    container_name: reportservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/ReportService/ReportService.Infrastructure/Dockerfile.migrator
+    image: reportservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${REPORT_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
+    networks:
+      - soat-net
+
   processingservice-db-migrator:
     container_name: processingservice-db-migrator
     build:
@@ -255,6 +327,8 @@ services:
       /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
       /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET_NAME} &&
       /usr/bin/mc anonymous set private local/${MINIO_BUCKET_NAME} &&
+      /usr/bin/mc mb --ignore-existing local/${MINIO_REPORT_BUCKET_NAME} &&
+      /usr/bin/mc anonymous set private local/${MINIO_REPORT_BUCKET_NAME} &&
       exit 0
       "
     restart: "no"
