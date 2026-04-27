@@ -39,5 +39,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ReportService.Application.Tests/ReportService.Application.Tests.csproj" />
+    <Project Path="UploadService.Application.Tests/UploadService.Application.Tests.csproj" Id="a9a81c35-317e-4537-9ec6-b62e129c9895" />
   </Folder>
 </Solution>
