@@ -54,7 +54,7 @@ services:
       MinIo__SecretKey: ${MINIO_ROOT_PASSWORD}
       MinIo__UseSsl: ${MINIO_USE_SSL}
 
-      OpenTelemetry__ServiceName: ${OTEL_SERVICE_NAME}
+      OpenTelemetry__ServiceName: UploadService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
@@ -157,6 +157,10 @@ services:
       OpenAI__ApiKey: ${OPENAI_API_KEY}
       OpenAI__Model: gpt-4o
       OpenAI__ServiceTier: flex
+
+      OpenTelemetry__ServiceName: ProcessingService.Worker
+      OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
       - soat-net
 
@@ -335,11 +339,23 @@ services:
     networks:
       - soat-net
 
+  aspire-dashboard:
+    container_name: fiapsecure-aspire-dashboard
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    restart: unless-stopped
+    ports:
+      - "${ASPIRE_DASHBOARD_PORT}:18888"
+    networks:
+      - soat-net
+
   otel-collector:
     container_name: fiapsecure-otel-collector
     image: otel/opentelemetry-collector:0.101.0
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
     volumes:
       - ./deploy/otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     ports:
