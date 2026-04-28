@@ -38,6 +38,7 @@
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="ProcessingService.Application/ProcessingService.Application.Tests.csproj" Id="fc0e9133-a0e2-400c-97c8-c6ecfa130a49" />
     <Project Path="tests/ReportService.Application.Tests/ReportService.Application.Tests.csproj" />
     <Project Path="UploadService.Application.Tests/UploadService.Application.Tests.csproj" Id="a9a81c35-317e-4537-9ec6-b62e129c9895" />
   </Folder>
