@@ -1,5 +1,6 @@
 ﻿using Shared.Contracts.IntegrationEvents;
 using UploadService.Application.Abstractions.Messaging;
+using UploadService.Application.Exceptions;
 using UploadService.Application.UseCases.UpdateAnalysisStatus;
 using UploadService.Domain.Enums;
 
@@ -23,6 +24,14 @@ public sealed class AnalysisStartedMessageHandler
             integrationEvent.AnalysisRequestId,
             AnalysisStatus.Processing);
 
-        await _updateAnalysisStatusHandler.HandleAsync(command, cancellationToken);
+        var result = await _updateAnalysisStatusHandler.HandleAsync(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            throw new MessageHandlingException(
+                $"Failed to process {nameof(AnalysisStartedIntegrationEvent)} for analysis '{integrationEvent.AnalysisRequestId}'. " +
+                $"Error: {result.Error.Code} - {result.Error.Message}",
+                result.Error.Code);
+        }
     }
 }

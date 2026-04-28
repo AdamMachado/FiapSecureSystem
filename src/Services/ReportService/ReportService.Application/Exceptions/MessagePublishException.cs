@@ -1,6 +1,6 @@
 using Shared.Kernel.Exceptions;
 
-namespace ProcessingService.Infrastructure.Exceptions;
+namespace ReportService.Application.Exceptions;
 
 public sealed class MessagePublishException : AppException
 {

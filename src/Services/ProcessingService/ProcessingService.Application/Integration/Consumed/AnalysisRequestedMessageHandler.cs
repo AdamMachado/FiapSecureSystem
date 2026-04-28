@@ -1,5 +1,6 @@
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.UseCases.StartAnalysisProcessing;
+using ReportService.Application.Exceptions;
 using Shared.Contracts.IntegrationEvents;
 
 namespace ProcessingService.Application.Integration.Consumed;
@@ -18,15 +19,23 @@ public sealed class AnalysisRequestedMessageHandler
         AnalysisRequestedIntegrationEvent integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        await _handler.HandleAsync(
-            new StartAnalysisProcessingCommand(
-                integrationEvent.AnalysisRequestId,
-                integrationEvent.RequestedByUserId,
-                integrationEvent.FileName,
-                integrationEvent.ContentType,
-                integrationEvent.FileHash,
-                integrationEvent.StorageBucket,
-                integrationEvent.StorageObjectKey),
-            cancellationToken);
+        var command = new StartAnalysisProcessingCommand(
+            integrationEvent.AnalysisRequestId,
+            integrationEvent.RequestedByUserId,
+            integrationEvent.FileName,
+            integrationEvent.ContentType,
+            integrationEvent.FileHash,
+            integrationEvent.StorageBucket,
+            integrationEvent.StorageObjectKey);
+
+        var result = await _handler.HandleAsync(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            throw new MessageHandlingException(
+                $"Failed to process {nameof(AnalysisFailedIntegrationEvent)} for analysis '{integrationEvent.AnalysisRequestId}'. " +
+                $"Error: {result.Error.Code} - {result.Error.Message}",
+                result.Error.Code);
+        }
     }
 }

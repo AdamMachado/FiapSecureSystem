@@ -1,108 +1,103 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 
-HOST="${RABBITMQ_HOST:-rabbitmq}"
-PORT="${RABBITMQ_MANAGEMENT_PORT:-15672}"
-RMQ_USER="${RABBITMQ_DEFAULT_USER:-guest}"
-RMQ_PASS="${RABBITMQ_DEFAULT_PASS:-guest}"
-VHOST="${RABBITMQ_VHOST:-/}"
+RABBITMQ_HOST="${RABBITMQ_HOST:-rabbitmq}"
+RABBITMQ_USER="${RABBITMQ_USER:-fiap_app}"
+RABBITMQ_PASS="${RABBITMQ_PASS:-fiap_app_dev_password}"
 
-encode_vhost() {
-  if [ "$1" = "/" ]; then
-    printf "%%2F"
-  else
-    printf "%s" "$1"
-  fi
+rabbitmqadmin_cmd() {
+  rabbitmqadmin \
+    --host="$RABBITMQ_HOST" \
+    --username="$RABBITMQ_USER" \
+    --password="$RABBITMQ_PASS" \
+    "$@"
 }
 
-VHOST_ENCODED="$(encode_vhost "$VHOST")"
-BASE_URL="http://${HOST}:${PORT}/api"
+echo "Waiting for RabbitMQ management API..."
 
-ANALYSIS_EXCHANGE="analysis.exchange"
-REPORT_EXCHANGE="report.exchange"
-
-PROCESSING_ANALYSIS_REQUESTED_QUEUE="processing.analysis.requested"
-
-UPLOAD_ANALYSIS_STARTED_QUEUE="upload.analysis.started"
-UPLOAD_ANALYSIS_COMPLETED_QUEUE="upload.analysis.completed"
-UPLOAD_ANALYSIS_FAILED_QUEUE="upload.analysis.failed"
-
-REPORT_ANALYSIS_COMPLETED_QUEUE="report.analysis.completed"
-
-echo "Waiting for RabbitMQ Management API..."
-until curl -fsu "${RMQ_USER}:${RMQ_PASS}" "${BASE_URL}/overview" >/dev/null 2>&1; do
-  sleep 3
+until rabbitmqadmin_cmd list exchanges > /dev/null 2>&1; do
+  echo "RabbitMQ is not ready yet..."
+  sleep 2
 done
 
-echo "RabbitMQ Management API is available."
-
-put_exchange() {
-  NAME="$1"
-
-  curl -fsu "${RMQ_USER}:${RMQ_PASS}" \
-    -H "content-type: application/json" \
-    -X PUT "${BASE_URL}/exchanges/${VHOST_ENCODED}/${NAME}" \
-    -d '{
-      "type":"topic",
-      "durable":true,
-      "auto_delete":false,
-      "internal":false,
-      "arguments":{}
-    }'
-}
-
-put_queue() {
-  NAME="$1"
-
-  curl -fsu "${RMQ_USER}:${RMQ_PASS}" \
-    -H "content-type: application/json" \
-    -X PUT "${BASE_URL}/queues/${VHOST_ENCODED}/${NAME}" \
-    -d '{
-      "durable":true,
-      "auto_delete":false,
-      "exclusive":false,
-      "arguments":{}
-    }'
-}
-
-bind_queue() {
-  EXCHANGE="$1"
-  QUEUE="$2"
-  ROUTING_KEY="$3"
-
-  curl -fsu "${RMQ_USER}:${RMQ_PASS}" \
-    -H "content-type: application/json" \
-    -X POST "${BASE_URL}/bindings/${VHOST_ENCODED}/e/${EXCHANGE}/q/${QUEUE}" \
-    -d "{
-      \"routing_key\":\"${ROUTING_KEY}\",
-      \"arguments\":{}
-    }"
-}
+echo "RabbitMQ is ready."
 
 echo "Declaring exchanges..."
-put_exchange "${ANALYSIS_EXCHANGE}"
-put_exchange "${REPORT_EXCHANGE}"
 
-echo "Declaring processing queues..."
-put_queue "${PROCESSING_ANALYSIS_REQUESTED_QUEUE}"
+rabbitmqadmin_cmd declare exchange name=analysis.exchange type=topic durable=true
+rabbitmqadmin_cmd declare exchange name=analysis.retry.exchange type=direct durable=true
+rabbitmqadmin_cmd declare exchange name=analysis.dlx type=direct durable=true
 
-echo "Declaring upload queues..."
-put_queue "${UPLOAD_ANALYSIS_STARTED_QUEUE}"
-put_queue "${UPLOAD_ANALYSIS_COMPLETED_QUEUE}"
-put_queue "${UPLOAD_ANALYSIS_FAILED_QUEUE}"
+rabbitmqadmin_cmd declare exchange name=report.exchange type=topic durable=true
+rabbitmqadmin_cmd declare exchange name=report.retry.exchange type=direct durable=true
+rabbitmqadmin_cmd declare exchange name=report.dlx type=direct durable=true
 
-echo "Declaring report queues..."
-put_queue "${REPORT_ANALYSIS_COMPLETED_QUEUE}"
+echo "Declaring queues..."
 
-echo "Binding processing queues..."
-bind_queue "${ANALYSIS_EXCHANGE}" "${PROCESSING_ANALYSIS_REQUESTED_QUEUE}" "analysis.requested"
+declare_queue() {
+  local exchange_prefix="$1"
+  local queue="$2"
+  local routing_key="$3"
 
-echo "Binding upload queues..."
-bind_queue "${ANALYSIS_EXCHANGE}" "${UPLOAD_ANALYSIS_STARTED_QUEUE}" "analysis.started"
-bind_queue "${ANALYSIS_EXCHANGE}" "${UPLOAD_ANALYSIS_COMPLETED_QUEUE}" "analysis.completed"
-bind_queue "${ANALYSIS_EXCHANGE}" "${UPLOAD_ANALYSIS_FAILED_QUEUE}" "analysis.failed"
+  local retry_queue="${queue}.retry"
+  local dlq="${queue}.dlq"
 
-echo "Binding report queues..."
-bind_queue "${ANALYSIS_EXCHANGE}" "${REPORT_ANALYSIS_COMPLETED_QUEUE}" "analysis.completed"
+  local exchange="${exchange_prefix}.exchange"
+  local exchange_retry="${exchange_prefix}.retry.exchange"
+  local exchange_dlx="${exchange_prefix}.dlx"
 
-echo "RabbitMQ topology initialization completed."
+  local main_queue_arguments
+  local retry_queue_arguments
+
+  main_queue_arguments="{\"x-dead-letter-exchange\":\"$exchange_retry\",\"x-dead-letter-routing-key\":\"$retry_queue\"}"
+  retry_queue_arguments="{\"x-message-ttl\":30000,\"x-dead-letter-exchange\":\"$exchange\",\"x-dead-letter-routing-key\":\"$routing_key\"}"
+
+  echo "Declaring queue: $queue"
+
+  rabbitmqadmin_cmd declare queue \
+    name="$queue" \
+    durable=true \
+    arguments="$main_queue_arguments"
+
+  rabbitmqadmin_cmd declare binding \
+    source="$exchange" \
+    destination="$queue" \
+    routing_key="$routing_key"
+
+  echo "Declaring retry queue: $retry_queue"
+
+  rabbitmqadmin_cmd declare queue \
+    name="$retry_queue" \
+    durable=true \
+    arguments="$retry_queue_arguments"
+
+  rabbitmqadmin_cmd declare binding \
+    source="$exchange_retry" \
+    destination="$retry_queue" \
+    routing_key="$retry_queue"
+
+  echo "Declaring DLQ: $dlq"
+
+  rabbitmqadmin_cmd declare queue \
+    name="$dlq" \
+    durable=true
+
+  rabbitmqadmin_cmd declare binding \
+    source="$exchange_dlx" \
+    destination="$dlq" \
+    routing_key="${queue}.dead"
+}
+
+echo "Declaring Upload queues..."
+declare_queue "analysis" "upload.analysis.started" "analysis.started"
+declare_queue "analysis" "upload.analysis.completed" "analysis.completed"
+declare_queue "analysis" "upload.analysis.failed" "analysis.failed"
+declare_queue "report" "upload.report.generated" "report.generated"
+
+echo "Declaring Processing queues..."
+declare_queue "analysis" "processing.analysis.requested" "analysis.requested"
+
+echo "Declaring Report queues..."
+declare_queue "analysis" "report.analysis.completed" "analysis.completed"
+
+echo "RabbitMQ FiapSecureSystems topology declared."

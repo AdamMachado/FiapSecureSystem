@@ -1,9 +1,10 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ProcessingService.Application.Abstractions.Messaging;
-using ProcessingService.Infrastructure.Exceptions;
 using ProcessingService.Infrastructure.Messaging.RabbitMq.Internals;
 using RabbitMQ.Client;
+using ReportService.Application.Exceptions;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.Messaging;
@@ -33,24 +34,28 @@ public sealed class RabbitMqPublisher : IEventPublisher
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        var exchangeName = ResolveExchangeName(integrationEvent);
+        var channel = _rabbitMqChannel.Channel;
         var routingKey = ResolveRoutingKey(integrationEvent);
-        var body = JsonSerializer.SerializeToUtf8Bytes(integrationEvent, integrationEvent.GetType(), JsonSerializerOptions);
-
-        var properties = new BasicProperties
-        {
-            ContentType = "application/json",
-            DeliveryMode = DeliveryModes.Persistent,
-            MessageId = integrationEvent.EventId.ToString(),
-            Type = integrationEvent.EventType,
-            Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
-            Headers = integrationEvent.CreateHeaders("ProcessingService")
-        };
 
         try
         {
-            await _rabbitMqChannel.Channel.BasicPublishAsync(
-                exchange: exchangeName,
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                integrationEvent,
+                integrationEvent.GetType()));
+
+            BasicProperties properties = new()
+            {
+                Persistent = true,
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent
+            };
+
+            properties.ApplyIntegrationEventHeaders(
+                integrationEvent,
+                source: "ProcessingService");
+
+            await channel.BasicPublishAsync(
+                exchange: ResolveExchangeName(integrationEvent),
                 routingKey: routingKey,
                 mandatory: true,
                 basicProperties: properties,

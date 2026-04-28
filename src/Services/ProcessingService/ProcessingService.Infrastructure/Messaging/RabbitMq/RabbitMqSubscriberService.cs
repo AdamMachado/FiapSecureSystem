@@ -18,6 +18,7 @@ public sealed class RabbitMqSubscriberService : BackgroundService
     private readonly RabbitMqMessageDispatcher _dispatcher;
     private readonly ILogger<RabbitMqSubscriberService> _logger;
     private readonly RabbitMqOptions _options;
+    private readonly IReadOnlyCollection<RabbitMqConsumerDescriptor> _consumers;
 
     public RabbitMqSubscriberService(
         RabbitMqChannel channel,
@@ -29,61 +30,48 @@ public sealed class RabbitMqSubscriberService : BackgroundService
         _dispatcher = dispatcher;
         _logger = logger;
         _options = options.Value;
+
+        _consumers =
+        [
+            new RabbitMqConsumerDescriptor(
+                QueueNames.AnalysisRequested,
+                ExchangeNames.Analysis,
+                RoutingKeys.AnalysisRequested,
+                ExchangeNames.AnalysisDeadLetter,
+                $"{QueueNames.AnalysisRequested}.dead",
+                typeof(AnalysisRequestedIntegrationEvent),
+                static async (provider, message, ct) =>
+                {
+                    var handler = provider.GetRequiredService<IIntegrationEventHandler<AnalysisRequestedIntegrationEvent>>();
+                    await handler.HandleAsync((AnalysisRequestedIntegrationEvent)message, ct);
+                })
+        ];
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var descriptor = new RabbitMqConsumerDescriptor(
-            QueueNames.AnalysisRequested,
-            ExchangeNames.Analysis,
-            RoutingKeys.AnalysisRequested,
-            typeof(AnalysisRequestedIntegrationEvent),
-            static async (sp, message, ct) =>
-            {
-                var handler = sp.GetRequiredService<IIntegrationEventHandler<AnalysisRequestedIntegrationEvent>>();
-                await handler.HandleAsync((AnalysisRequestedIntegrationEvent)message, ct);
-            });
+        await _channel.Channel.BasicQosAsync(
+             prefetchSize: 0,
+             prefetchCount: _options.PrefetchCount,
+             global: false,
+             cancellationToken: stoppingToken);
 
-        await DeclareConsumerAsync(descriptor, stoppingToken);
+        foreach (var descriptor in _consumers)
+        {
+            await ConfigureConsumerAsync(descriptor, stoppingToken);
+        }
 
         _logger.LogInformation(
-            "ProcessingService RabbitMQ subscriber started. Queue={QueueName} RoutingKey={RoutingKey}",
-            descriptor.QueueName,
-            descriptor.RoutingKey);
+            "RabbitMQ subscriber started. Consumers: {ConsumerCount}, PrefetchCount: {PrefetchCount}",
+            _consumers.Count,
+            _options.PrefetchCount);
     }
 
-    private async Task DeclareConsumerAsync(
+    private async Task ConfigureConsumerAsync(
         RabbitMqConsumerDescriptor descriptor,
         CancellationToken cancellationToken)
     {
-        await _channel.Channel.ExchangeDeclareAsync(
-            descriptor.ExchangeName,
-            ExchangeType.Topic,
-            durable: true,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: cancellationToken);
-
-        await _channel.Channel.QueueDeclareAsync(
-            descriptor.QueueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: cancellationToken);
-
-        await _channel.Channel.QueueBindAsync(
-            descriptor.QueueName,
-            descriptor.ExchangeName,
-            descriptor.RoutingKey,
-            arguments: null,
-            cancellationToken: cancellationToken);
-
-        await _channel.Channel.BasicQosAsync(
-            prefetchSize: 0,
-            prefetchCount: _options.PrefetchCount,
-            global: false,
-            cancellationToken: cancellationToken);
+        await EnsureQueueExistsAsync(descriptor, cancellationToken);
 
         var consumer = new AsyncEventingBasicConsumer(_channel.Channel);
         consumer.ReceivedAsync += _dispatcher.CreateHandler(descriptor);
@@ -93,5 +81,36 @@ public sealed class RabbitMqSubscriberService : BackgroundService
             autoAck: false,
             consumer: consumer,
             cancellationToken: cancellationToken);
+
+        _logger.LogInformation(
+            "RabbitMQ consumer configured. Queue: {QueueName}, Exchange: {ExchangeName}, RoutingKey: {RoutingKey}",
+            descriptor.QueueName,
+            descriptor.ExchangeName,
+            descriptor.RoutingKey);
+    }
+
+    private async Task EnsureQueueExistsAsync(
+        RabbitMqConsumerDescriptor descriptor,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _channel.Channel.QueueDeclarePassiveAsync(
+                queue: descriptor.QueueName,
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(
+                ex,
+                "RabbitMQ queue '{QueueName}' does not exist or is not accessible. " +
+                "Topology must be created by init-rabbitmq.sh before starting this service. " +
+                "Expected exchange: {ExchangeName}, routing key: {RoutingKey}",
+                descriptor.QueueName,
+                descriptor.ExchangeName,
+                descriptor.RoutingKey);
+
+            throw;
+        }
     }
 }

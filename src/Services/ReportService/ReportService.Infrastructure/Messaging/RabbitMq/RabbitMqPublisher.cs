@@ -6,8 +6,8 @@ using Shared.Observability.Messaging;
 using System.Text;
 using System.Text.Json;
 using ReportService.Application.Abstractions.Messaging;
-using ReportService.Infrastructure.Exceptions;
 using ReportService.Infrastructure.Messaging.RabbitMq.Internals;
+using ReportService.Application.Exceptions;
 
 namespace ReportService.Infrastructure.Messaging.RabbitMq;
 
@@ -24,10 +24,11 @@ public sealed class RabbitMqPublisher : IEventPublisher
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
+        var channel = _rabbitMqChannel.Channel;
+        var routingKey = ResolveRoutingKey(integrationEvent);
+
         try
         {
-            var channel = _rabbitMqChannel.Channel;
-
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
                 integrationEvent,
                 integrationEvent.GetType()));
@@ -35,7 +36,8 @@ public sealed class RabbitMqPublisher : IEventPublisher
             BasicProperties properties = new()
             {
                 Persistent = true,
-                ContentType = "application/json"
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent
             };
 
             properties.ApplyIntegrationEventHeaders(
@@ -44,15 +46,17 @@ public sealed class RabbitMqPublisher : IEventPublisher
 
             await channel.BasicPublishAsync(
                 exchange: ResolveExchange(integrationEvent),
-                routingKey: ResolveRoutingKey(integrationEvent),
-                mandatory: false,
+                routingKey: routingKey,
+                mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
-            throw new MessagePublishException("Failed to publish RabbitMQ message.", ex);
+            throw new MessagePublishException(
+                $"Failed to publish integration event '{integrationEvent.EventType}' with routing key '{routingKey}'.",
+                ex);
         }
     }
 
@@ -61,7 +65,6 @@ public sealed class RabbitMqPublisher : IEventPublisher
         return integrationEvent switch
         {
             ReportGeneratedIntegrationEvent => ExchangeNames.Report,
-            AnalysisCompletedIntegrationEvent => ExchangeNames.Analysis,
             _ => throw new InvalidOperationException(
                 $"No exchange mapped for event type '{integrationEvent.GetType().Name}'.")
         };
@@ -72,7 +75,6 @@ public sealed class RabbitMqPublisher : IEventPublisher
         return integrationEvent switch
         {
             ReportGeneratedIntegrationEvent => RoutingKeys.ReportGenerated,
-            AnalysisCompletedIntegrationEvent => RoutingKeys.AnalysisCompleted,
             _ => throw new InvalidOperationException(
                 $"No routing key mapped for event type '{integrationEvent.GetType().Name}'.")
         };

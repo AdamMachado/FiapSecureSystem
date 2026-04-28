@@ -1,10 +1,12 @@
 using RabbitMQ.Client;
+using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Abstractions;
+using Shared.Contracts.Messaging;
 using Shared.Observability.Messaging;
 using System.Text;
 using System.Text.Json;
 using UploadService.Application.Abstractions.Messaging;
-using UploadService.Infrastructure.Exceptions;
+using UploadService.Application.Exceptions;
 using UploadService.Infrastructure.Messaging.RabbitMq.Internals;
 
 namespace UploadService.Infrastructure.Messaging.RabbitMq;
@@ -22,18 +24,20 @@ public sealed class RabbitMqPublisher : IEventPublisher
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
+        var channel = _rabbitMqChannel.Channel;
+        var routingKey = ResolveRoutingKey(integrationEvent);
+
         try
         {
-            var channel = _rabbitMqChannel.Channel;
-
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
                 integrationEvent,
                 integrationEvent.GetType()));
 
-            BasicProperties properties = new BasicProperties
+            BasicProperties properties = new()
             {
                 Persistent = true,
-                ContentType = "application/json"
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent
             };
 
             properties.ApplyIntegrationEventHeaders(
@@ -42,15 +46,17 @@ public sealed class RabbitMqPublisher : IEventPublisher
 
             await channel.BasicPublishAsync(
                 exchange: ResolveExchange(integrationEvent),
-                routingKey: ResolveRoutingKey(integrationEvent),
-                mandatory: false,
+                routingKey: routingKey,
+                mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
-            throw new MessagePublishException("Failed to publish RabbitMQ message.", ex);
+            throw new MessagePublishException(
+                $"Failed to publish integration event '{integrationEvent.EventType}' with routing key '{routingKey}'.",
+                ex);
         }
     }
 
@@ -58,7 +64,8 @@ public sealed class RabbitMqPublisher : IEventPublisher
     {
         return integrationEvent switch
         {
-            _ => Shared.Contracts.Messaging.ExchangeNames.Analysis
+            AnalysisRequestedIntegrationEvent => ExchangeNames.Analysis,
+            _ => throw new MessagePublishException($"Unsupported integration event type '{integrationEvent.GetType().Name}'.")
         };
     }
 
@@ -66,23 +73,8 @@ public sealed class RabbitMqPublisher : IEventPublisher
     {
         return integrationEvent switch
         {
-            Shared.Contracts.IntegrationEvents.AnalysisRequestedIntegrationEvent
-                => Shared.Contracts.Messaging.RoutingKeys.AnalysisRequested,
-
-            Shared.Contracts.IntegrationEvents.AnalysisStartedIntegrationEvent
-                => Shared.Contracts.Messaging.RoutingKeys.AnalysisStarted,
-
-            Shared.Contracts.IntegrationEvents.AnalysisCompletedIntegrationEvent
-                => Shared.Contracts.Messaging.RoutingKeys.AnalysisCompleted,
-
-            Shared.Contracts.IntegrationEvents.AnalysisFailedIntegrationEvent
-                => Shared.Contracts.Messaging.RoutingKeys.AnalysisFailed,
-
-            Shared.Contracts.IntegrationEvents.ReportGeneratedIntegrationEvent
-                => Shared.Contracts.Messaging.RoutingKeys.ReportGenerated,
-
-            _ => throw new InvalidOperationException(
-                $"No routing key mapped for event type '{integrationEvent.GetType().Name}'.")
+            AnalysisRequestedIntegrationEvent => RoutingKeys.AnalysisRequested,
+            _ => throw new MessagePublishException($"Unsupported integration event type '{integrationEvent.GetType().Name}'.")
         };
     }
 }
