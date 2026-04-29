@@ -12,13 +12,15 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-const string serviceName = ActivitySources.ProcessingService;
+var serviceName =
+    builder.Configuration["OpenTelemetry:ServiceName"]
+    ?? ActivitySources.ProcessingService;
+
+builder.Services.AddCorrelationContext();
 
 builder.Services.AddSharedSerilog(
     builder.Configuration,
     serviceName);
-
-builder.Services.AddCorrelationContext();
 
 builder.Services.AddProcessingApplication();
 builder.Services.AddProcessingInfrastructure(builder.Configuration);

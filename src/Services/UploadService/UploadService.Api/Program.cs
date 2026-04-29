@@ -10,14 +10,16 @@ using UploadService.Infrastructure.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var projectIdentifier = "UploadService.Api";
+var serviceName =
+    builder.Configuration["OpenTelemetry:ServiceName"]
+    ?? ActivitySources.UploadService;
 
-builder.Services.AddSharedSerilog(builder.Configuration, projectIdentifier);
+builder.Services.AddSharedSerilog(builder.Configuration, serviceName);
 
 builder.Services.AddSharedOpenTelemetry(
     builder.Configuration,
-    projectIdentifier,
-    ActivitySources.UploadService);
+    serviceName,
+    serviceName);
 
 builder.Services.AddUploadProblemDetails();
 builder.Services.AddUploadSwagger();
@@ -32,7 +34,7 @@ var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 logger.LogInformation(
     "Starting application {ApplicationName} in environment: {Environment}",
-    projectIdentifier,
+    serviceName,
     app.Environment.EnvironmentName);
 
 app.UseSerilogRequestLogging();
@@ -50,16 +52,16 @@ app.UseSharedHealthChecks();
 
 try
 {
-    logger.LogInformation("Application {ApplicationName} started", projectIdentifier);
+    logger.LogInformation("Application {ApplicationName} started", serviceName);
 
     app.Run();
 }
 catch (Exception ex)
 {
-    logger.LogCritical(ex, "Application {ApplicationName} terminated unexpectedly", projectIdentifier);
+    logger.LogCritical(ex, "Application {ApplicationName} terminated unexpectedly", serviceName);
     throw;
 }
 finally
 {
-    logger.LogInformation("Application {ApplicationName} stopped", projectIdentifier);
+    logger.LogInformation("Application {ApplicationName} stopped", serviceName);
 }

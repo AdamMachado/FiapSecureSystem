@@ -10,14 +10,16 @@ using Shared.Observability.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var projectIdentifier = "ReportService.Api";
+var serviceName =
+    builder.Configuration["OpenTelemetry:ServiceName"]
+    ?? ActivitySources.ReportService;
 
-builder.Services.AddSharedSerilog(builder.Configuration, projectIdentifier);
+builder.Services.AddSharedSerilog(builder.Configuration, serviceName);
 
 builder.Services.AddSharedOpenTelemetry(
     builder.Configuration,
-    serviceName: projectIdentifier,
-    ActivitySources.ReportService);
+    serviceName: serviceName,
+    serviceName);
 
 builder.Services.AddReportProblemDetails();
 builder.Services.AddReportSwagger();

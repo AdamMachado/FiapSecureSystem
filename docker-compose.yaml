@@ -34,8 +34,8 @@ services:
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
-      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
       RabbitMq__ClientProvidedName: ${RABBITMQ_UPLOAD_CLIENT_PROVIDED_NAME}
       RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
       RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
@@ -54,7 +54,7 @@ services:
       MinIo__SecretKey: ${MINIO_ROOT_PASSWORD}
       MinIo__UseSsl: ${MINIO_USE_SSL}
 
-      OpenTelemetry__ServiceName: UploadService.Api
+      OpenTelemetry__ServiceName: SOAT.UploadService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
@@ -93,8 +93,8 @@ services:
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
-      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
       RabbitMq__ClientProvidedName: ${RABBITMQ_REPORT_CLIENT_PROVIDED_NAME}
       RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
       RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
@@ -107,7 +107,7 @@ services:
       MinIo__SecretKey: ${MINIO_ROOT_PASSWORD}
       MinIo__UseSsl: ${MINIO_USE_SSL}
 
-      OpenTelemetry__ServiceName: ReportService.Api
+      OpenTelemetry__ServiceName: SOAT.ReportService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
@@ -144,8 +144,8 @@ services:
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__VirtualHost: ${RABBITMQ_VHOST}
-      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
       RabbitMq__ClientProvidedName: ${RABBITMQ_PROCESSING_CLIENT_PROVIDED_NAME}
       RabbitMq__UseSsl: ${RABBITMQ_USE_SSL}
       RabbitMq__PrefetchCount: ${RABBITMQ_PREFETCH_COUNT}
@@ -159,7 +159,7 @@ services:
       OpenAI__Model: gpt-4o
       OpenAI__ServiceTier: flex
 
-      OpenTelemetry__ServiceName: ProcessingService.Worker
+      OpenTelemetry__ServiceName: SOAT.ProcessingService.Worker
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     networks:
@@ -262,8 +262,8 @@ services:
     image: rabbitmq:3.13-management
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
       RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
       RABBITMQ_ERLANG_COOKIE: "fiapsecure-static-cookie"
     ports:
@@ -272,7 +272,11 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 15672"
+        ]
       interval: 10s
       timeout: 10s
       retries: 15
@@ -289,8 +293,8 @@ services:
     environment:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_MANAGEMENT_PORT: 15672
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
       RABBITMQ_VHOST: ${RABBITMQ_VHOST}
     volumes:
       - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
@@ -346,6 +350,7 @@ services:
     restart: unless-stopped
     ports:
       - "${ASPIRE_DASHBOARD_PORT}:18888"
+      - "${ASPIRE_OTLP_GRPC_PORT}:18889"
     networks:
       - soat-net
 

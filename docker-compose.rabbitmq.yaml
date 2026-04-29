@@ -1,0 +1,55 @@
+name: fiap-secure-systems
+
+services:
+  rabbitmq:
+    container_name: fiapsecure-rabbitmq
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_ERLANG_COOKIE: "fiapsecure-static-cookie"
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 15672"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 70s
+    networks:
+      - soat-net
+
+  rabbitmq-init:
+    container_name: fiapsecure-rabbitmq-init
+    image: curlimages/curl:8.8.0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_MANAGEMENT_PORT: 15672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+    volumes:
+      - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
+    entrypoint: ["/bin/sh", "/init-rabbitmq.sh"]
+    restart: "no"
+    networks:
+      - soat-net
+
+networks:
+  soat-net:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:

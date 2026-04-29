@@ -1,92 +1,129 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/sh
+set -eu
 
 RABBITMQ_HOST="${RABBITMQ_HOST:-rabbitmq}"
-RABBITMQ_USER="${RABBITMQ_USER:-fiap_app}"
-RABBITMQ_PASS="${RABBITMQ_PASS:-fiap_app_dev_password}"
+RABBITMQ_MANAGEMENT_PORT="${RABBITMQ_MANAGEMENT_PORT:-15672}"
 
-rabbitmqadmin_cmd() {
-  rabbitmqadmin \
-    --host="$RABBITMQ_HOST" \
-    --username="$RABBITMQ_USER" \
-    --password="$RABBITMQ_PASS" \
-    "$@"
+RABBITMQ_USER="${RABBITMQ_USER:-${RABBITMQ_USER:-fiap_app}}"
+RABBITMQ_PASS="${RABBITMQ_PASS:-${RABBITMQ_PASS:-fiap_app_dev_password}}"
+RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
+
+# Encode simples para vhost "/".
+# Para o vhost padrão "/", a API espera "%2F".
+VHOST_ENCODED="$(printf '%s' "$RABBITMQ_VHOST" | sed 's|/|%2F|g')"
+
+API_BASE="http://${RABBITMQ_HOST}:${RABBITMQ_MANAGEMENT_PORT}/api"
+
+curl_api() {
+  method="$1"
+  path="$2"
+  data="${3:-}"
+
+  if [ -n "$data" ]; then
+    curl --fail-with-body -sS \
+      -u "${RABBITMQ_USER}:${RABBITMQ_PASS}" \
+      -H "content-type: application/json" \
+      -X "$method" \
+      -d "$data" \
+      "${API_BASE}${path}"
+  else
+    curl --fail-with-body -sS \
+      -u "${RABBITMQ_USER}:${RABBITMQ_PASS}" \
+      -X "$method" \
+      "${API_BASE}${path}"
+  fi
 }
 
 echo "Waiting for RabbitMQ management API..."
 
-until rabbitmqadmin_cmd list exchanges > /dev/null 2>&1; do
-  echo "RabbitMQ is not ready yet..."
+attempt=1
+max_attempts=120
+
+until curl_api GET "/overview" >/dev/null 2>&1; do
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "RabbitMQ management API was not ready after ${max_attempts} attempts."
+    echo "Last diagnostic attempt:"
+    curl -v -u "${RABBITMQ_USER}:${RABBITMQ_PASS}" "${API_BASE}/overview" || true
+    exit 1
+  fi
+
+  echo "RabbitMQ is not ready yet... attempt ${attempt}/${max_attempts}"
+  attempt=$((attempt + 1))
   sleep 2
 done
 
 echo "RabbitMQ is ready."
 
-echo "Declaring exchanges..."
+declare_exchange() {
+  exchange="$1"
+  type="$2"
 
-rabbitmqadmin_cmd declare exchange name=analysis.exchange type=topic durable=true
-rabbitmqadmin_cmd declare exchange name=analysis.retry.exchange type=direct durable=true
-rabbitmqadmin_cmd declare exchange name=analysis.dlx type=direct durable=true
+  echo "Declaring exchange: ${exchange}"
 
-rabbitmqadmin_cmd declare exchange name=report.exchange type=topic durable=true
-rabbitmqadmin_cmd declare exchange name=report.retry.exchange type=direct durable=true
-rabbitmqadmin_cmd declare exchange name=report.dlx type=direct durable=true
-
-echo "Declaring queues..."
+  curl_api PUT \
+    "/exchanges/${VHOST_ENCODED}/${exchange}" \
+    "{\"type\":\"${type}\",\"durable\":true,\"auto_delete\":false,\"internal\":false,\"arguments\":{}}" \
+    >/dev/null
+}
 
 declare_queue() {
-  local exchange_prefix="$1"
-  local queue="$2"
-  local routing_key="$3"
+  exchange_prefix="$1"
+  queue="$2"
+  routing_key="$3"
 
-  local retry_queue="${queue}.retry"
-  local dlq="${queue}.dlq"
+  retry_queue="${queue}.retry"
+  dlq="${queue}.dlq"
 
-  local exchange="${exchange_prefix}.exchange"
-  local exchange_retry="${exchange_prefix}.retry.exchange"
-  local exchange_dlx="${exchange_prefix}.dlx"
+  exchange="${exchange_prefix}.exchange"
+  exchange_retry="${exchange_prefix}.retry.exchange"
+  exchange_dlx="${exchange_prefix}.dlx"
 
-  local main_queue_arguments
-  local retry_queue_arguments
+  echo "Declaring queue: ${queue}"
 
-  main_queue_arguments="{\"x-dead-letter-exchange\":\"$exchange_retry\",\"x-dead-letter-routing-key\":\"$retry_queue\"}"
-  retry_queue_arguments="{\"x-message-ttl\":30000,\"x-dead-letter-exchange\":\"$exchange\",\"x-dead-letter-routing-key\":\"$routing_key\"}"
+  curl_api PUT \
+    "/queues/${VHOST_ENCODED}/${queue}" \
+    "{\"durable\":true,\"auto_delete\":false,\"arguments\":{\"x-dead-letter-exchange\":\"${exchange_retry}\",\"x-dead-letter-routing-key\":\"${retry_queue}\"}}" \
+    >/dev/null
 
-  echo "Declaring queue: $queue"
+  curl_api POST \
+    "/bindings/${VHOST_ENCODED}/e/${exchange}/q/${queue}" \
+    "{\"routing_key\":\"${routing_key}\",\"arguments\":{}}" \
+    >/dev/null
 
-  rabbitmqadmin_cmd declare queue \
-    name="$queue" \
-    durable=true \
-    arguments="$main_queue_arguments"
+  echo "Declaring retry queue: ${retry_queue}"
 
-  rabbitmqadmin_cmd declare binding \
-    source="$exchange" \
-    destination="$queue" \
-    routing_key="$routing_key"
+  curl_api PUT \
+    "/queues/${VHOST_ENCODED}/${retry_queue}" \
+    "{\"durable\":true,\"auto_delete\":false,\"arguments\":{\"x-message-ttl\":30000,\"x-dead-letter-exchange\":\"${exchange}\",\"x-dead-letter-routing-key\":\"${routing_key}\"}}" \
+    >/dev/null
 
-  echo "Declaring retry queue: $retry_queue"
+  curl_api POST \
+    "/bindings/${VHOST_ENCODED}/e/${exchange_retry}/q/${retry_queue}" \
+    "{\"routing_key\":\"${retry_queue}\",\"arguments\":{}}" \
+    >/dev/null
 
-  rabbitmqadmin_cmd declare queue \
-    name="$retry_queue" \
-    durable=true \
-    arguments="$retry_queue_arguments"
+  echo "Declaring DLQ: ${dlq}"
 
-  rabbitmqadmin_cmd declare binding \
-    source="$exchange_retry" \
-    destination="$retry_queue" \
-    routing_key="$retry_queue"
+  curl_api PUT \
+    "/queues/${VHOST_ENCODED}/${dlq}" \
+    "{\"durable\":true,\"auto_delete\":false,\"arguments\":{}}" \
+    >/dev/null
 
-  echo "Declaring DLQ: $dlq"
-
-  rabbitmqadmin_cmd declare queue \
-    name="$dlq" \
-    durable=true
-
-  rabbitmqadmin_cmd declare binding \
-    source="$exchange_dlx" \
-    destination="$dlq" \
-    routing_key="${queue}.dead"
+  curl_api POST \
+    "/bindings/${VHOST_ENCODED}/e/${exchange_dlx}/q/${dlq}" \
+    "{\"routing_key\":\"${queue}.dead\",\"arguments\":{}}" \
+    >/dev/null
 }
+
+echo "Declaring exchanges..."
+
+declare_exchange "analysis.exchange" "topic"
+declare_exchange "analysis.retry.exchange" "direct"
+declare_exchange "analysis.dlx" "direct"
+
+declare_exchange "report.exchange" "topic"
+declare_exchange "report.retry.exchange" "direct"
+declare_exchange "report.dlx" "direct"
 
 echo "Declaring Upload queues..."
 declare_queue "analysis" "upload.analysis.started" "analysis.started"
