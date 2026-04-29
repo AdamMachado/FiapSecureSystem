@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Application.Abstractions.Clock;
@@ -31,6 +32,10 @@ public sealed class StartAnalysisProcessingHandlerTests
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent>> _completedMapper = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent>> _failedMapper = new();
 
+    private readonly Mock<ILogger<CompleteAnalysisProcessingHandler>> _loggerComplete = new();
+    private readonly Mock<ILogger<FailAnalysisProcessingHandler>> _loggerFail = new();
+    private readonly Mock<ILogger<StartAnalysisProcessingHandler>> _loggerStart = new();
+
     private StartAnalysisProcessingHandler CreateHandler()
     {
         var completeHandler = new CompleteAnalysisProcessingHandler(
@@ -38,14 +43,16 @@ public sealed class StartAnalysisProcessingHandlerTests
             _unitOfWork.Object,
             _dateTimeProvider.Object,
             _eventPublisher.Object,
-            _completedMapper.Object);
+            _completedMapper.Object,
+            _loggerComplete.Object);
 
         var failHandler = new FailAnalysisProcessingHandler(
             _repository.Object,
             _unitOfWork.Object,
             _dateTimeProvider.Object,
             _eventPublisher.Object,
-            _failedMapper.Object);
+            _failedMapper.Object,
+            _loggerFail.Object);
 
         return new StartAnalysisProcessingHandler(
             _repository.Object,
@@ -56,7 +63,8 @@ public sealed class StartAnalysisProcessingHandlerTests
             _eventPublisher.Object,
             _startedMapper.Object,
             completeHandler,
-            failHandler);
+            failHandler,
+            _loggerStart.Object);
     }
 
     [Fact]

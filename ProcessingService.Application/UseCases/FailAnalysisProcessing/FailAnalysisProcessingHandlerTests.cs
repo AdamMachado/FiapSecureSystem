@@ -1,8 +1,10 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.Abstractions.Persistence;
+using ProcessingService.Application.UseCases.CompleteAnalysisProcessing;
 using ProcessingService.Application.UseCases.FailAnalysisProcessing;
 using ProcessingService.Domain.Entities;
 using ProcessingService.Domain.Enums;
@@ -20,6 +22,7 @@ public sealed class CompleteAnalysisProcessingHandlerTests
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent>> _mapper = new();
+    private readonly Mock<ILogger<FailAnalysisProcessingHandler>> _logger = new();
 
     private FailAnalysisProcessingHandler CreateHandler()
     {
@@ -28,7 +31,8 @@ public sealed class CompleteAnalysisProcessingHandlerTests
             _unitOfWork.Object,
             _dateTimeProvider.Object,
             _eventPublisher.Object,
-            _mapper.Object);
+            _mapper.Object,
+            _logger.Object);
     }
 
     [Fact]

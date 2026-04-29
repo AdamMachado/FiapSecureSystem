@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
@@ -21,6 +22,7 @@ public sealed class CompleteAnalysisProcessingHandlerTests
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent>> _mapper = new();
+    private readonly Mock<ILogger<CompleteAnalysisProcessingHandler>> _logger = new();
 
     private CompleteAnalysisProcessingHandler CreateHandler()
     {
@@ -29,7 +31,8 @@ public sealed class CompleteAnalysisProcessingHandlerTests
             _unitOfWork.Object,
             _dateTimeProvider.Object,
             _eventPublisher.Object,
-            _mapper.Object);
+            _mapper.Object,
+            _logger.Object);
     }
 
     [Fact]
