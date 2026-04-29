@@ -80,18 +80,50 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
         ArchitectureAnalysisRequest request,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "Starting architecture analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}, ContentType={ContentType}",
+            request.AnalysisRequestId,
+            request.DiagramType,
+            request.ContentType);
+
         if (!CanHandle(request.DiagramType))
+        {
+            _logger.LogError(
+                "Unsupported diagram type for analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+                request.AnalysisRequestId,
+                request.DiagramType);
+
             throw new UnsupportedDiagramFormatException(request.ContentType);
+        }
 
         var content = await ReadContentAsync(request.Content, cancellationToken);
         _inputValidator.ValidateAndThrow(request, content);
 
+        _logger.LogInformation(
+            "Content read successfully for analysis. AnalysisRequestId={AnalysisRequestId}, ContentSize={ContentSize} bytes",
+            request.AnalysisRequestId,
+            content.Length);
+
         var inspector = _inspectors.FirstOrDefault(x => x.CanInspect(request.DiagramType));
+        
         if (inspector is null)
+        {
+            _logger.LogError(
+                "No suitable inspector found for diagram type. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+                request.AnalysisRequestId,
+                request.DiagramType);
+
             throw new UnsupportedDiagramFormatException(request.ContentType);
+        }
 
         var inspection = await inspector.InspectAsync(request, content, cancellationToken);
         _costPolicy.ValidateAndThrow(inspection);
+
+        _logger.LogInformation(
+            "Inspection completed for analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}, InspectionDetails={InspectionDetails}",
+            request.AnalysisRequestId,
+            request.DiagramType,
+            inspection);
 
         var developerInstructions = _promptBuilder.BuildDeveloperInstructions();
         var userInstructions = _promptBuilder.BuildUserInstructions(request, inspection);

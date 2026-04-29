@@ -32,4 +32,24 @@ builder.Services.AddHostedService<WorkerLifecycleLogger>();
 
 var host = builder.Build();
 
-await host.RunAsync();
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
+var environment = host.Services.GetRequiredService<IHostEnvironment>();
+
+logger.LogInformation(
+    "Starting worker {ApplicationName} in {Environment}",
+    serviceName,
+    environment.EnvironmentName);
+
+try
+{
+    await host.RunAsync();
+}
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Worker {ApplicationName} terminated unexpectedly", "ProcessingService.Worker");
+    throw;
+}
+finally
+{
+    logger.LogInformation("Worker {ApplicationName} stopped", "ProcessingService.Worker");
+}

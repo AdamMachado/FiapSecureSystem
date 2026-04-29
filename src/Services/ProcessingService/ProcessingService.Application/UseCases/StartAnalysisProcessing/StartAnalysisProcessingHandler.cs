@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
@@ -28,6 +29,8 @@ public sealed class StartAnalysisProcessingHandler
     private readonly CompleteAnalysisProcessingHandler _completeHandler;
     private readonly FailAnalysisProcessingHandler _failHandler;
 
+    private readonly ILogger<StartAnalysisProcessingHandler> _logger;
+
     public StartAnalysisProcessingHandler(
         IAnalysisProcessRepository repository,
         IUnitOfWork unitOfWork,
@@ -37,7 +40,8 @@ public sealed class StartAnalysisProcessingHandler
         IEventPublisher eventPublisher,
         IIntegrationEventMapper<AnalysisProcessingStartedDomainEvent> startedIntegrationEventMapper,
         CompleteAnalysisProcessingHandler completeHandler,
-        FailAnalysisProcessingHandler failHandler)
+        FailAnalysisProcessingHandler failHandler,
+        ILogger<StartAnalysisProcessingHandler> logger)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -51,18 +55,29 @@ public sealed class StartAnalysisProcessingHandler
 
         _completeHandler = completeHandler;
         _failHandler = failHandler;
+
+        _logger = logger;
     }
 
     public async Task<Result<StartAnalysisProcessingResult>> HandleAsync(
         StartAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "Handling StartAnalysisProcessingCommand. AnalysisRequestId={AnalysisRequestId}, RequestedByUserId={RequestedByUserId}",
+            command.AnalysisRequestId,
+            command.RequestedByUserId);
+
         var analysisExists = await _repository.ExistsByAnalysisRequestIdAsync(
             AnalysisRequestId.Create(command.AnalysisRequestId), 
             cancellationToken);
 
         if (analysisExists)
         {
+            _logger.LogWarning(
+                "Analysis process already exists for AnalysisRequestId={AnalysisRequestId}. Cannot start a new process for the same request.",
+                command.AnalysisRequestId);
+
             return Result.Failure<StartAnalysisProcessingResult>(
                 Error.Conflict(
                     "processing.already_exists",
@@ -85,6 +100,12 @@ public sealed class StartAnalysisProcessingHandler
         await _repository.AddAsync(process, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation(
+            "Started analysis process. AnalysisProcessId={AnalysisProcessId}, AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+            process.Id,
+            process.AnalysisRequestId,
+            process.DiagramType);
+
         var startedDomainEvent = process
             .DequeueDomainEvents()
             .OfType<AnalysisProcessingStartedDomainEvent>()
@@ -106,6 +127,11 @@ public sealed class StartAnalysisProcessingHandler
                     $"No architecture analyzer found for diagram type '{process.DiagramType}'.",
                     null,
                     nowUtc);
+
+                _logger.LogError(
+                    "No architecture analyzer found for diagram type. AnalysisProcessId={AnalysisProcessId}, DiagramType={DiagramType}",
+                    process.Id,
+                    process.DiagramType);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -141,8 +167,20 @@ public sealed class StartAnalysisProcessingHandler
                     analysisResult.Warnings),
                 cancellationToken);
 
-            if (completed.IsFailure)
+            if (completed.IsFailure) 
+            { 
+                _logger .LogError(
+                    "Failed to complete analysis processing after successful analysis. AnalysisRequestId={AnalysisRequestId}, Error: {ErrorCode} - {ErrorMessage}",
+                    command.AnalysisRequestId,
+                    completed.Error.Code,
+                    completed.Error.Message);
+
                 return Result.Failure<StartAnalysisProcessingResult>(completed.Error);
+            }
+
+            _logger.LogInformation(
+                "Successfully completed analysis processing. AnalysisRequestId={AnalysisRequestId}",
+                command.AnalysisRequestId);
 
             return Result.Success(new StartAnalysisProcessingResult(
                 completed.Value.AnalysisProcessId,
@@ -155,6 +193,11 @@ public sealed class StartAnalysisProcessingHandler
         }
         catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "An unexpected error occurred during analysis processing. AnalysisRequestId={AnalysisRequestId}",
+                command.AnalysisRequestId);
+
             var failed = await _failHandler.HandleAsync(
                 new FailAnalysisProcessingCommand(
                     command.AnalysisRequestId,

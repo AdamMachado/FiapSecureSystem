@@ -10,9 +10,8 @@ public sealed class ProcessingDbContext : DbContext
     private DatabaseOptions _databaseOptions;
 
     public ProcessingDbContext(
-    DbContextOptions<ProcessingDbContext> options,
-    IOptions<DatabaseOptions> databaseOptions)
-    : base(options)
+        DbContextOptions<ProcessingDbContext> options,
+        IOptions<DatabaseOptions> databaseOptions) : base(options)
     {
         _databaseOptions = databaseOptions.Value;
     }

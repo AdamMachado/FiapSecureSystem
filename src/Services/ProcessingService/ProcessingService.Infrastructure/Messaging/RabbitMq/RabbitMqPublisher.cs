@@ -39,6 +39,12 @@ public sealed class RabbitMqPublisher : IEventPublisher
         var exchange = ResolveExchangeName(integrationEvent);
         var routingKey = ResolveRoutingKey(integrationEvent);
 
+        _logger.LogInformation(
+            "Publishing integration event to RabbitMQ. EventType: {EventType}, Exchange: {Exchange}, RoutingKey: {RoutingKey}",
+            integrationEvent.EventType,
+            exchange,
+            routingKey);
+
         try
         {
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(

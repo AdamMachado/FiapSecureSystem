@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Domain.Enums;
@@ -10,10 +11,12 @@ namespace ProcessingService.Infrastructure.AI.Inspection;
 public sealed class PdfAnalysisFileInspector : IAnalysisFileInspector
 {
     private readonly ArchitectureAnalysisOptions _options;
+    private readonly ILogger<PdfAnalysisFileInspector> _logger;
 
-    public PdfAnalysisFileInspector(IOptions<ArchitectureAnalysisOptions> options)
+    public PdfAnalysisFileInspector(IOptions<ArchitectureAnalysisOptions> options, ILogger<PdfAnalysisFileInspector> logger)
     {
         _options = options.Value;
+        _logger = logger;
     }
 
     public bool CanInspect(DiagramType diagramType)
@@ -27,6 +30,12 @@ public sealed class PdfAnalysisFileInspector : IAnalysisFileInspector
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.LogInformation(
+            "Inspecting PDF file for architecture analysis. DiagramType: {DiagramType}, ContentType: {ContentType}, Size: {Size} bytes",
+            request.DiagramType,
+            request.ContentType,
+            content.Length);
 
         var warnings = new List<string>();
 
@@ -64,6 +73,15 @@ public sealed class PdfAnalysisFileInspector : IAnalysisFileInspector
                 if (textPreview.Trim().Length < _options.MinExtractedTextLengthForPdf)
                     warnings.Add("The PDF has little or no extractable text. The model will rely mostly on visual page analysis.");
             }
+
+            _logger.LogInformation(
+                "Completed PDF inspection. DiagramType: {DiagramType}, ContentType: {ContentType}, Size: {Size} bytes, PageCount: {PageCount}, TextPreviewLength: {TextPreviewLength} characters, Warnings: {WarningCount}",
+                request.DiagramType,
+                request.ContentType,
+                content.Length,
+                pageCount,
+                textPreview?.Length ?? 0,
+                warnings.Count);
 
             return Task.FromResult(new AnalysisFileInspectionResult(
                 request.DiagramType,

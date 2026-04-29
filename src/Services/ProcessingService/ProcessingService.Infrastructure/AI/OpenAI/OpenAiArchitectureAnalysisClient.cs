@@ -68,11 +68,24 @@ public sealed class OpenAiArchitectureAnalysisClient
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(_options.TimeoutSeconds, 30)));
 
+        _logger.LogInformation(
+            "Sending architecture analysis request to OpenAI. Model: {Model}, ServiceTier: {ServiceTier}, PayloadSize: {PayloadSize} bytes",
+            _options.Model,
+            serviceTier ?? "default",
+            httpRequest.Content.Headers.ContentLength ?? 0);
+
         using var response = await _httpClient.SendAsync(httpRequest, timeout.Token);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError(
+                "OpenAI architecture analysis request failed. StatusCode: {StatusCode}, ResponseBody: {ResponseBody}",
+                response.StatusCode,
+                TrimForException(body));
+
             throw CreateProviderException(response.StatusCode, body);
+        }
 
         var outputText = ExtractOutputText(body);
         if (string.IsNullOrWhiteSpace(outputText))
@@ -80,6 +93,11 @@ public sealed class OpenAiArchitectureAnalysisClient
             _logger.LogWarning("OpenAI response did not include output text. RawBody={RawBody}", body);
             throw new ExternalAiUnavailableException("OpenAI response did not include output text.");
         }
+
+        _logger.LogInformation(
+            "Received architecture analysis response from OpenAI. OutputTextLength: {OutputTextLength} characters, Usage: {UsageMetrics}",
+            outputText.Length,
+            ExtractUsage(body)?.ToString() ?? "N/A");
 
         return new OpenAiResponseEnvelope(outputText, ExtractUsage(body));
     }

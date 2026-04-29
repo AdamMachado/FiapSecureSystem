@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.Abstractions.Persistence;
@@ -16,12 +17,15 @@ public sealed class FailAnalysisProcessingHandler
     private readonly IEventPublisher _eventPublisher;
     private readonly IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent> _integrationEventMapper;
 
+    private readonly ILogger<FailAnalysisProcessingHandler> _logger;
+
     public FailAnalysisProcessingHandler(
         IAnalysisProcessRepository repository,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IEventPublisher eventPublisher,
-        IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent> integrationEventMapper)
+        IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent> integrationEventMapper,
+        ILogger<FailAnalysisProcessingHandler> logger)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -29,18 +33,29 @@ public sealed class FailAnalysisProcessingHandler
 
         _eventPublisher = eventPublisher;
         _integrationEventMapper = integrationEventMapper;
+
+        _logger = logger;
     }
 
     public async Task<Result<FailAnalysisProcessingResult>> HandleAsync(
         FailAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "Handling {CommandType} for AnalysisRequestId={AnalysisRequestId}",
+            nameof(FailAnalysisProcessingCommand),
+            command.AnalysisRequestId);
+
         var process = await _repository.GetByAnalysisRequestIdAsync(
             AnalysisRequestId.Create(command.AnalysisRequestId), 
             cancellationToken);
 
         if (process is null)
         {
+            _logger.LogWarning(
+                "No analysis process found for AnalysisRequestId={AnalysisRequestId}. Cannot mark processing as failed.",
+                command.AnalysisRequestId);
+
             return Result.Failure<FailAnalysisProcessingResult>(
                 Error.NotFound(
                     "processing.not_found",
@@ -59,6 +74,12 @@ public sealed class FailAnalysisProcessingHandler
             .Single();
 
         await _eventPublisher.PublishAsync(_integrationEventMapper.Map(domainEvent), cancellationToken);
+
+        _logger.LogInformation(
+            "Marked analysis processing as failed. AnalysisProcessId={AnalysisProcessId}, AnalysisRequestId={AnalysisRequestId}, Reason={Reason}",
+            process.Id,
+            process.AnalysisRequestId,
+            command.Reason);
 
         return Result.Success(new FailAnalysisProcessingResult(
             process.Id,

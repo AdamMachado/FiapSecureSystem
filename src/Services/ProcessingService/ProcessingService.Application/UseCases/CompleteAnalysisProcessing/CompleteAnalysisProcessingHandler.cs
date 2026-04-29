@@ -4,6 +4,7 @@ using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Domain.Events;
 using ProcessingService.Domain.ValueObjects;
 using Shared.Kernel.Result;
+using Microsoft.Extensions.Logging;
 
 namespace ProcessingService.Application.UseCases.CompleteAnalysisProcessing;
 
@@ -16,12 +17,15 @@ public sealed class CompleteAnalysisProcessingHandler
     private readonly IEventPublisher _eventPublisher;
     private readonly IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent> _integrationEventMapper;
 
+    private readonly ILogger<CompleteAnalysisProcessingHandler> _logger;
+
     public CompleteAnalysisProcessingHandler(
         IAnalysisProcessRepository repository,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IEventPublisher eventPublisher,
-        IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent> integrationEventMapper)
+        IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent> integrationEventMapper,
+        ILogger<CompleteAnalysisProcessingHandler> logger)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -29,18 +33,29 @@ public sealed class CompleteAnalysisProcessingHandler
 
         _eventPublisher = eventPublisher;
         _integrationEventMapper = integrationEventMapper;
+
+        _logger = logger;
     }
 
     public async Task<Result<CompleteAnalysisProcessingResult>> HandleAsync(
         CompleteAnalysisProcessingCommand command,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "Handling {CommandType} for AnalysisRequestId={AnalysisRequestId}",
+            nameof(CompleteAnalysisProcessingCommand),
+            command.AnalysisRequestId);
+
         var process = await _repository.GetByAnalysisRequestIdAsync(
             AnalysisRequestId.Create(command.AnalysisRequestId), 
             cancellationToken);
 
         if (process is null)
         {
+            _logger.LogWarning(
+                "No analysis process found for AnalysisRequestId={AnalysisRequestId}. Cannot complete processing.",
+                command.AnalysisRequestId);
+
             return Result.Failure<CompleteAnalysisProcessingResult>(
                 Error.NotFound(
                     "processing.not_found",
@@ -74,6 +89,13 @@ public sealed class CompleteAnalysisProcessingHandler
             .Single();
 
         await _eventPublisher.PublishAsync(_integrationEventMapper.Map(domainEvent), cancellationToken);
+
+        _logger .LogInformation(
+            "Completed analysis processing for AnalysisRequestId={AnalysisRequestId}. Total components: {ComponentCount}, Risks: {RiskCount}, Recommendations: {RecommendationCount}",
+            command.AnalysisRequestId,
+            process.Components.Count,
+            process.Risks.Count,
+            process.Recommendations.Count);
 
         return Result.Success(new CompleteAnalysisProcessingResult(
             process.Id,

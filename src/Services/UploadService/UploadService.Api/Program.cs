@@ -28,6 +28,13 @@ builder.Services
 
 var app = builder.Build();
 
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+logger.LogInformation(
+    "Starting application {ApplicationName} in environment: {Environment}",
+    projectIdentifier,
+    app.Environment.EnvironmentName);
+
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCorrelationContext();
@@ -41,4 +48,18 @@ app.UseHttpsRedirection();
 app.MapControllers();
 app.UseSharedHealthChecks();
 
-app.Run();
+try
+{
+    logger.LogInformation("Application {ApplicationName} started", projectIdentifier);
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Application {ApplicationName} terminated unexpectedly", projectIdentifier);
+    throw;
+}
+finally
+{
+    logger.LogInformation("Application {ApplicationName} stopped", projectIdentifier);
+}

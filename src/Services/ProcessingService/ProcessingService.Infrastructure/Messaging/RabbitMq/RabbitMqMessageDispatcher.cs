@@ -36,6 +36,12 @@ public sealed class RabbitMqMessageDispatcher
 
     public AsyncEventHandler<BasicDeliverEventArgs> CreateHandler(RabbitMqConsumerDescriptor descriptor)
     {
+        _logger.LogInformation(
+            "Creating RabbitMQ message handler. Queue: {QueueName}, RoutingKey: {RoutingKey}, MessageType: {MessageType}",
+            descriptor.QueueName,
+            descriptor.RoutingKey,
+            descriptor.IntegrationEventType.Name);
+
         return async (_, args) =>
         {
             using var scope = _serviceProvider.CreateScope();
@@ -55,6 +61,12 @@ public sealed class RabbitMqMessageDispatcher
 
                 if (payload is not IntegrationEventBase integrationEvent)
                 {
+                    _logger.LogError(
+                        "Failed to deserialize RabbitMQ message. Queue: {QueueName}, RoutingKey: {RoutingKey}, Type: {MessageType}",
+                        descriptor.QueueName,
+                        args.RoutingKey,
+                        descriptor.IntegrationEventType.Name);
+
                     throw new InvalidOperationException(
                         $"Could not deserialize message to '{descriptor.IntegrationEventType.Name}'.");
                 }
@@ -67,6 +79,12 @@ public sealed class RabbitMqMessageDispatcher
                 await channel.BasicAckAsync(
                     args.DeliveryTag,
                     multiple: false);
+
+                _logger.LogInformation(
+                    "Successfully handled RabbitMQ message. Queue: {QueueName}, RoutingKey: {RoutingKey}, Type: {MessageType}",
+                    descriptor.QueueName,
+                    args.RoutingKey,
+                    descriptor.IntegrationEventType.Name);
             }
             catch (Exception ex)
             {
@@ -101,6 +119,12 @@ public sealed class RabbitMqMessageDispatcher
                     args.DeliveryTag,
                     multiple: false,
                     requeue: false);
+
+                _logger.LogWarning(
+                    "RabbitMQ message has been negatively acknowledged and will be requeued by RabbitMQ. Queue: {QueueName}, RoutingKey: {RoutingKey}, Type: {MessageType}",
+                    descriptor.QueueName,
+                    args.RoutingKey,
+                    descriptor.IntegrationEventType.Name);
             }
             finally
             {
