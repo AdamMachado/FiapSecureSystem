@@ -6,6 +6,7 @@ namespace ProcessingService.Infrastructure.Messaging.RabbitMq.Internals;
 public sealed class RabbitMqChannel : IAsyncDisposable
 {
     private readonly IConnection _connection;
+    public IChannel Channel { get; }
 
     private RabbitMqChannel(IConnection connection, IChannel channel)
     {
@@ -13,22 +14,18 @@ public sealed class RabbitMqChannel : IAsyncDisposable
         Channel = channel;
     }
 
-    public IChannel Channel { get; }
-
     public static async Task<RabbitMqChannel> CreateAsync(
         ConnectionFactory factory,
         CancellationToken cancellationToken = default)
     {
         var connection = await factory.CreateConnectionAsync(cancellationToken);
-        var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-        await channel.ExchangeDeclareAsync(
-            ExchangeNames.Analysis,
-            ExchangeType.Topic,
-            durable: true,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: cancellationToken);
+        var channelOptions = new CreateChannelOptions(
+            publisherConfirmationsEnabled: true,
+            publisherConfirmationTrackingEnabled: true,
+            outstandingPublisherConfirmationsRateLimiter: null);
+
+        var channel = await connection.CreateChannelAsync(channelOptions, cancellationToken);
 
         return new RabbitMqChannel(connection, channel);
     }
