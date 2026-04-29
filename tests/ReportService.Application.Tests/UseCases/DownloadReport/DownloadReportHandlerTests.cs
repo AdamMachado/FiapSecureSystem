@@ -4,6 +4,7 @@ using ReportService.Application.Abstractions.Persistence;
 using ReportService.Application.Abstractions.Storage;
 using ReportService.Application.UseCases.DownloadReport;
 using ReportService.Domain.Entities;
+using ReportService.Domain.Enums;
 using Xunit;
 
 namespace ReportService.Application.Tests.UseCases.DownloadReport;
@@ -19,17 +20,17 @@ public sealed class DownloadReportHandlerTests
             _repository.Object,
             _storage.Object);
     }
-
     [Fact]
     public async Task HandleAsync_Should_Return_File_When_Report_And_Object_Exist()
     {
         var reportId = Guid.NewGuid();
+        var analysisRequestId = Guid.NewGuid();
 
         var report = AnalysisReport.Create(
             id: reportId,
-            analysisRequestId: Guid.NewGuid(),
+            analysisRequestId: analysisRequestId,
             requestedByUserId: Guid.NewGuid(),
-            format: ReportService.Domain.Enums.ReportFormat.Pdf,
+            format: ReportFormat.Pdf,
             content: "conteudo do relatorio",
             bucketName: "analysis-reports",
             objectKey: "reports/report.pdf",
@@ -38,13 +39,15 @@ public sealed class DownloadReportHandlerTests
             createdAtUtc: DateTime.UtcNow);
 
         _repository
-            .Setup(x => x.GetByIdAsync(reportId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByAnalysisRequestIdAsync(
+                analysisRequestId,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
 
         _storage
             .Setup(x => x.DownloadAsync(
-                "analysis-reports",
-                "reports/report.pdf",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DownloadedReportDescriptor(
                 "report.pdf",
@@ -54,20 +57,25 @@ public sealed class DownloadReportHandlerTests
         var handler = CreateHandler();
 
         var result = await handler.HandleAsync(
-            new DownloadReportQuery(reportId),
+            new DownloadReportQuery(analysisRequestId),
             CancellationToken.None);
 
-        result.IsSuccess.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue(result.Error.Message);
         result.Value.FileName.Should().Be("report.pdf");
         result.Value.ContentType.Should().Be("application/pdf");
         result.Value.Content.Should().NotBeNull();
 
         _repository.Verify(
-            x => x.GetByIdAsync(reportId, It.IsAny<CancellationToken>()),
+            x => x.GetByAnalysisRequestIdAsync(
+                analysisRequestId,
+                It.IsAny<CancellationToken>()),
             Times.Once);
 
         _storage.Verify(
-            x => x.DownloadAsync("analysis-reports", "reports/report.pdf", It.IsAny<CancellationToken>()),
+            x => x.DownloadAsync(
+                "analysis-reports",
+                "reports/report.pdf",
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
