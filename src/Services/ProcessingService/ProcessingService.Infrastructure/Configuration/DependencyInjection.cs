@@ -86,7 +86,11 @@ public static class DependencyInjection
                 UserName = options.Username,
                 Password = options.Password,
                 ClientProvidedName = options.ClientProvidedName,
-                Ssl = { Enabled = options.UseSsl }
+                Ssl =
+                {
+                    Enabled = options.UseSsl,
+                    ServerName = options.Host
+                }
             };
         });
 

@@ -134,7 +134,8 @@ services:
       minio-init:
         condition: service_completed_successfully
     environment:
-      DOTNET_ENVIRONMENT: Development
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
 
       Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}

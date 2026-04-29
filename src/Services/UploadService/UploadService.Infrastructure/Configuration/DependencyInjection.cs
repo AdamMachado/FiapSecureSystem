@@ -84,7 +84,12 @@ public static class DependencyInjection
                 VirtualHost = options.VirtualHost,
                 UserName = options.Username,
                 Password = options.Password,
-                ClientProvidedName = options.ClientProvidedName
+                ClientProvidedName = options.ClientProvidedName,
+                Ssl =
+                {
+                    Enabled = options.UseSsl,
+                    ServerName = options.Host
+                }
             };
         });
 
