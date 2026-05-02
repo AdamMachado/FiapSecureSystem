@@ -7,8 +7,9 @@ using RabbitMQ.Client;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
-using System.Diagnostics;
 using Shared.Observability.Telemetry;
+using System.Diagnostics;
+using UploadService.Application.Abstractions.Clock;
 using UploadService.Application.Abstractions.Identity;
 using UploadService.Application.Abstractions.Messaging;
 using UploadService.Application.Abstractions.Persistence;
@@ -16,6 +17,7 @@ using UploadService.Application.Abstractions.Storage;
 using UploadService.Application.Integration.Consumed;
 using UploadService.Application.Integration.Published;
 using UploadService.Domain.Events;
+using UploadService.Infrastructure.Clock;
 using UploadService.Infrastructure.Configuration.Options;
 using UploadService.Infrastructure.HealthChecks;
 using UploadService.Infrastructure.Identity;
@@ -44,6 +46,8 @@ public static class DependencyInjection
         services.Configure<MinIoOptions>(configuration.GetSection(MinIoOptions.SectionName));
 
         services.AddCorrelationContext();
+
+        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddDbContext<UploadDbContext>((sp, options) =>
         {

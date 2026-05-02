@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Minio;
 using RabbitMQ.Client;
+using ReportService.Application.Abstractions.Clock;
 using ReportService.Application.Abstractions.Messaging;
 using ReportService.Application.Abstractions.Persistence;
 using ReportService.Application.Abstractions.Rendering;
@@ -11,6 +12,7 @@ using ReportService.Application.Abstractions.Storage;
 using ReportService.Application.Integration.Consumed;
 using ReportService.Application.Integration.Published;
 using ReportService.Domain.Events;
+using ReportService.Infrastructure.Clock;
 using ReportService.Infrastructure.Configuration.Options;
 using ReportService.Infrastructure.HealthChecks;
 using ReportService.Infrastructure.Messaging.RabbitMq;
@@ -25,8 +27,7 @@ using ReportService.Infrastructure.Storage.MinIO;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
-using ReportService.Application.Abstractions.Clock;
-using ReportService.Infrastructure.Clock;
+using Shared.Observability.Telemetry;
 
 namespace ReportService.Infrastructure.Configuration;
 
@@ -36,6 +37,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton(_ => ActivitySources.Create(ActivitySources.ReportService));
+
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));

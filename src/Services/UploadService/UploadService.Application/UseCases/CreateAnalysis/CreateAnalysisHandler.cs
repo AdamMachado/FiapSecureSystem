@@ -1,4 +1,5 @@
-﻿using Shared.Kernel.Exceptions;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shared.Kernel.Exceptions;
 using Shared.Kernel.Result;
 using System.Diagnostics;
 using UploadService.Application.Abstractions.Clock;
@@ -84,6 +85,10 @@ public sealed class CreateAnalysisHandler
 
         if (!_uploadPolicy.IsContentTypeSupported(command.ContentType))
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "Unsupported content type.");
+            activity?.SetTag("exception.type", typeof(UnsupportedContentTypeException).FullName);
+            activity?.SetTag("exception.message", $"Unsupported content type '{command.ContentType}'.");
+
             return Result.Failure<CreateAnalysisResult>(
                 Error.Validation(
                     "analysis.unsupported_content_type",

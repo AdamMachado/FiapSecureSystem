@@ -8,6 +8,7 @@ using ReportService.Domain.Entities;
 using ReportService.Domain.Events;
 using Shared.Kernel.Exceptions;
 using Shared.Kernel.Result;
+using System.Diagnostics;
 
 namespace ReportService.Application.UseCases.GenerateReport;
 
@@ -21,6 +22,7 @@ public sealed class GenerateReportHandler
     private readonly IReportStorage _reportStorage;
     private readonly IEventPublisher _eventPublisher;
     private readonly IIntegrationEventMapper<ReportGeneratedDomainEvent> _generatedEventMapper;
+    private readonly ActivitySource _activitySource;
 
     public GenerateReportHandler(
         GenerateReportValidator validator,
@@ -30,7 +32,8 @@ public sealed class GenerateReportHandler
         IReportRenderer reportRenderer,
         IReportStorage reportStorage,
         IEventPublisher eventPublisher,
-        IIntegrationEventMapper<ReportGeneratedDomainEvent> generatedEventMapper)
+        IIntegrationEventMapper<ReportGeneratedDomainEvent> generatedEventMapper,
+        ActivitySource activitySource)
     {
         _validator = validator;
         _repository = repository;
@@ -40,18 +43,30 @@ public sealed class GenerateReportHandler
         _reportStorage = reportStorage;
         _eventPublisher = eventPublisher;
         _generatedEventMapper = generatedEventMapper;
+        _activitySource = activitySource;
     }
 
     public async Task<Result<GenerateReportResult>> HandleAsync(
         GenerateReportCommand command,
         CancellationToken cancellationToken = default)
     {
+        using var activity = _activitySource.StartActivity(
+            "ReportService generate report",
+            ActivityKind.Internal);
+
+        activity?.SetTag("report.analysis_request.id", command.AnalysisRequestId);
+        activity?.SetTag("report.format", command.Format);
+
         try
         {
             _validator.ValidateAndThrow(command);
         }
         catch (ArgumentException ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
+
             return Result.Failure<GenerateReportResult>(
                 Error.Validation("report.validation_error", ex.Message));
         }
@@ -62,6 +77,10 @@ public sealed class GenerateReportHandler
 
         if (existing is not null)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "A report for the analysis request already exists.");
+            activity?.SetTag("exception.type", typeof(InvalidOperationException).FullName);
+            activity?.SetTag("exception.message", $"A report for analysis request '{command.AnalysisRequestId}' already exists.");
+
             return Result.Failure<GenerateReportResult>(
                 Error.Conflict(
                     "report.already_exists",
@@ -120,6 +139,8 @@ public sealed class GenerateReportHandler
                 }
             }
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
             return Result.Success(new GenerateReportResult(
                 report.Id,
                 report.AnalysisRequestId,
@@ -130,20 +151,28 @@ public sealed class GenerateReportHandler
                 report.GeneratedFileLocation.ObjectKey,
                 report.GeneratedAtUtc ?? report.CreatedAtUtc));
         }
-        catch (ValidationException ex)
+        catch(Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
+
+            var errorCode = "report.error";
+
+            if (ex is DomainException)
+            {
+                errorCode = "report.domain_error";
+
+                return Result.Failure<GenerateReportResult>(
+                    Error.Failure(errorCode, ex.Message));
+            }
+            else if (ex is ValidationException)
+                errorCode = "report.validation_error";
+            else if (ex is ArgumentException)
+                errorCode = "report.invalid_argument";
+
             return Result.Failure<GenerateReportResult>(
-                Error.Validation("report.validation_error", ex.Message));
-        }
-        catch (DomainException ex)
-        {
-            return Result.Failure<GenerateReportResult>(
-                Error.Failure("report.domain_error", ex.Message));
-        }
-        catch (ArgumentException ex)
-        {
-            return Result.Failure<GenerateReportResult>(
-                Error.Validation("report.invalid_argument", ex.Message));
+                Error.Validation(errorCode, ex.Message));
         }
     }
 }

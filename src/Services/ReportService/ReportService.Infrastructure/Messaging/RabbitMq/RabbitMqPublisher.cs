@@ -8,6 +8,7 @@ using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.Messaging;
 using Shared.Observability.Messaging;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,13 +21,16 @@ public sealed class RabbitMqPublisher : IEventPublisher
 
     private readonly RabbitMqChannel _rabbitMqChannel;
     private readonly ILogger<RabbitMqPublisher> _logger;
+    private readonly ActivitySource _activitySource;
 
     public RabbitMqPublisher(
         RabbitMqChannel rabbitMqChannel,
-        ILogger<RabbitMqPublisher> logger)
+        ILogger<RabbitMqPublisher> logger,
+        ActivitySource activitySource)
     {
         _rabbitMqChannel = rabbitMqChannel;
         _logger = logger;
+        _activitySource = activitySource;
 
         _rabbitMqChannel.Channel.BasicReturnAsync += OnBasicReturnAsync;
     }
@@ -39,6 +43,21 @@ public sealed class RabbitMqPublisher : IEventPublisher
         var exchange = ResolveExchange(integrationEvent);
         var routingKey = ResolveRoutingKey(integrationEvent);
 
+        using var activity = _activitySource.StartActivity(
+            $"RabbitMQ publish {routingKey}",
+            ActivityKind.Producer
+        );
+
+        activity?.SetTag("messaging.system", "rabbitmq");
+        activity?.SetTag("messaging.destination.name", exchange);
+        activity?.SetTag("messaging.rabbitmq.routing_key", routingKey);
+        activity?.SetTag("messaging.operation", "publish");
+        activity?.SetTag("messaging.message.id", integrationEvent.EventId.ToString("N"));
+        activity?.SetTag("messaging.message.type", integrationEvent.EventType);
+        activity?.SetTag("correlation.id", integrationEvent.CorrelationId.ToString("N"));
+
+        if (integrationEvent.CausationId != null)
+            activity?.SetTag("causation.id", integrationEvent.CausationId.Value.ToString("N"));
         try
         {
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
@@ -57,16 +76,22 @@ public sealed class RabbitMqPublisher : IEventPublisher
                 integrationEvent,
                 source: "ReportService");
 
+            properties.InjectTraceContext(activity);
+
             await channel.BasicPublishAsync(
-                exchange: ResolveExchange(integrationEvent),
+                exchange: exchange,
                 routingKey: routingKey,
                 mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken);
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
             throw new MessagePublishException(
                 $"Failed to publish integration event '{integrationEvent.EventType}' " +
                 $"to exchange '{exchange}' with routing key '{routingKey}'.",

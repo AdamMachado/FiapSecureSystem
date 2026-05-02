@@ -3,8 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using UploadService.Api.Middlewares;
 using UploadService.Application;
-using UploadService.Application.Abstractions.Clock;
-using UploadService.Infrastructure.Clock;
 
 namespace UploadService.Api.DependencyInjection;
 
@@ -22,7 +20,6 @@ public static class ServiceCollectionExtensions
         services.ConfigureHttpJsonOptions(options => ConfigureJson(options.SerializerOptions));
 
         services.AddScoped<ExceptionHandlingMiddleware>();
-        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddUploadApplication();
 
