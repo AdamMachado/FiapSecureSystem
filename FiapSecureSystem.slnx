@@ -10,6 +10,7 @@
   <Folder Name="/infra/" />
   <Folder Name="/Solution Items/">
     <File Path=".env" />
+    <File Path="docker-compose-infra.yaml" />
     <File Path="docker-compose.rabbitmq.yaml" />
     <File Path="docker-compose.yaml" />
   </Folder>

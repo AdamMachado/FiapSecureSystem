@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using ProcessingService.Infrastructure.AI.OpenAI;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using ProcessingService.Infrastructure.AI.Options;
 
 namespace ProcessingService.Infrastructure.AI.Guardrails;

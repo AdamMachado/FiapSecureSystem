@@ -1,6 +1,6 @@
 using Shared.Contracts.IntegrationEvents.Enums;
 
-namespace ProcessingService.Infrastructure.AI.OpenAI;
+namespace ProcessingService.Infrastructure.AI.OpenAI.Models;
 
 internal sealed record ArchitectureAnalysisResponse(
     IReadOnlyCollection<ArchitectureComponentResponse> Components,

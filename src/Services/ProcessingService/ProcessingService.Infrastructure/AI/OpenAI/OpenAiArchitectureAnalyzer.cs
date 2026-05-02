@@ -9,6 +9,7 @@ using ProcessingService.Infrastructure.AI.Diagnostics;
 using ProcessingService.Infrastructure.AI.Exceptions;
 using ProcessingService.Infrastructure.AI.Guardrails;
 using ProcessingService.Infrastructure.AI.Inspection;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using ProcessingService.Infrastructure.AI.Options;
 using ProcessingService.Infrastructure.AI.Policies;
 using ProcessingService.Infrastructure.AI.Validation;

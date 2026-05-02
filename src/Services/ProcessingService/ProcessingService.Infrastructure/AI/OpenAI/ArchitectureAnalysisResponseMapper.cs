@@ -1,4 +1,5 @@
 using ProcessingService.Application.Abstractions.AI;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using Shared.Contracts.IntegrationEvents.Schemas;
 
 namespace ProcessingService.Infrastructure.AI.OpenAI;

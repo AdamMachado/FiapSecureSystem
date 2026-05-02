@@ -5,6 +5,7 @@ using UploadService.Api.Contracts.Requests;
 using UploadService.Api.Contracts.Responses;
 using UploadService.Application.UseCases.CreateAnalysis;
 using UploadService.Application.UseCases.GetAnalysisStatus;
+using Serilog;
 
 namespace UploadService.Api.Controllers;
 
@@ -13,6 +14,13 @@ namespace UploadService.Api.Controllers;
 [Produces("application/json")]
 public sealed class AnalysesController : ControllerBase
 {
+    private readonly ILogger<AnalysesController> _logger;
+
+    public AnalysesController(ILogger<AnalysesController> logger)
+    {
+        _logger = logger;
+    }
+
     [HttpPost]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(CreateAnalysisResponse), StatusCodes.Status201Created)]
@@ -24,8 +32,12 @@ public sealed class AnalysesController : ControllerBase
         [FromServices] CreateAnalysisHandler handler,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received request to create analysis for file: {FileName}", request.File?.FileName);
+
         if (request.File is null)
         {
+            _logger.LogWarning("No file provided in the request.");
+
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 [nameof(request.File)] = ["A file is required."]
@@ -70,6 +82,8 @@ public sealed class AnalysesController : ControllerBase
         [FromServices] GetAnalysisStatusHandler handler,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received request to get analysis status for AnalysisRequestId: {AnalysisRequestId}", analysisRequestId);
+
         var result = await handler.HandleAsync(new GetAnalysisStatusQuery(analysisRequestId), cancellationToken);
 
         if (result.IsFailure)
