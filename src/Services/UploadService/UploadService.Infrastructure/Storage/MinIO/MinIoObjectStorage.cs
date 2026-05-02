@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;
+using System.Diagnostics;
 using UploadService.Application.Abstractions.Storage;
 using UploadService.Domain.ValueObjects;
 using UploadService.Infrastructure.Configuration.Options;
@@ -12,13 +13,16 @@ public sealed class MinIoObjectStorage : IObjectStorage
 {
     private readonly IMinioClient _minioClient;
     private readonly StorageOptions _storageOptions;
+    private readonly ActivitySource _activitySource;
 
     public MinIoObjectStorage(
         IMinioClient minioClient,
-        IOptions<StorageOptions> storageOptions)
+        IOptions<StorageOptions> storageOptions,
+        ActivitySource activitySource)
     {
         _minioClient = minioClient;
         _storageOptions = storageOptions.Value;
+        _activitySource = activitySource;
     }
 
     public async Task<StoredObjectDescriptor> UploadAsync(
@@ -27,6 +31,14 @@ public sealed class MinIoObjectStorage : IObjectStorage
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Content);
+
+        using var activity = _activitySource.StartActivity(
+            "MinIO upload object",
+            ActivityKind.Client);
+
+        activity?.SetTag("storage.system", "minio");
+        activity?.SetTag("storage.object.key", request.ObjectKey);
+        activity?.SetTag("storage.content_type", request.ContentType);
 
         try
         {
@@ -56,12 +68,18 @@ public sealed class MinIoObjectStorage : IObjectStorage
 
             var response = await _minioClient.PutObjectAsync(putArgs, cancellationToken);
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
             return new StoredObjectDescriptor(
                 StorageLocation.Create(_storageOptions.BucketName, request.ObjectKey),
                 response.Etag);
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
+
             throw new StorageUnavailableException(
                 $"Failed to upload object '{request.ObjectKey}' to bucket '{_storageOptions.BucketName}'.",
                 ex);

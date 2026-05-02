@@ -3,10 +3,14 @@ using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
 using Shared.Observability.Logging;
 using Shared.Observability.Telemetry;
+using System.Diagnostics;
 using UploadService.Api.Configuration;
 using UploadService.Api.DependencyInjection;
 using UploadService.Api.Middlewares;
 using UploadService.Infrastructure.Configuration;
+
+Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
 

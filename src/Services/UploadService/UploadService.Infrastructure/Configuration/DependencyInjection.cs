@@ -7,6 +7,8 @@ using RabbitMQ.Client;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
+using System.Diagnostics;
+using Shared.Observability.Telemetry;
 using UploadService.Application.Abstractions.Identity;
 using UploadService.Application.Abstractions.Messaging;
 using UploadService.Application.Abstractions.Persistence;
@@ -33,6 +35,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton(_ => ActivitySources.Create(ActivitySources.UploadService));
+
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));

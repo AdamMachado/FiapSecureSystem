@@ -43,8 +43,10 @@ public sealed class RabbitMqMessageDispatcher
             var channel = scope.ServiceProvider.GetRequiredService<RabbitMqChannel>().Channel;
             var correlation = args.BasicProperties.ExtractCorrelationContext();
 
+            var consumedMessageId = correlation.MessageId ?? Guid.NewGuid().ToString("N");
+
             _correlationContextAccessor.CorrelationId = correlation.CorrelationId;
-            _correlationContextAccessor.CausationId = correlation.MessageId;
+            _correlationContextAccessor.CausationId = consumedMessageId;
 
             try
             {

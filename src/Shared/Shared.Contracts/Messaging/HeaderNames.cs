@@ -9,4 +9,9 @@ public static class HeaderNames
     public const string MessageVersion = "x-message-version";
     public const string Source = "x-source";
     public const string OccurredOnUtc = "x-occurred-on-utc";
+
+    //W3C Trace Context headers
+    public const string TraceParent = "traceparent";
+    public const string TraceState = "tracestate";
+    public const string Baggage = "baggage";
 }
