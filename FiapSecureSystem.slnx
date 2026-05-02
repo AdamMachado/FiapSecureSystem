@@ -32,6 +32,9 @@
     <Project Path="src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj" />
     <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Web/">
+    <Project Path="FIAPSecureAnalyzer.Site/FIAPSecureAnalyzer.Site.csproj" Id="1fc7247e-1d3e-4abe-b5b7-f2d8080e4e73" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/Shared.Contracts/Shared.Contracts.csproj" />
     <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj" />
