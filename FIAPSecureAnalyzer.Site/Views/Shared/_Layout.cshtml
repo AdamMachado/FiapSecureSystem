@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FIAPSecureAnalyzer.Site.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/x-icon" href="~/images/logo2.png" />
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -22,7 +23,6 @@
 
             <div class="app-nav-links">
                 <a asp-controller="Home" asp-action="Index">Home</a>
-                <a asp-controller="Home" asp-action="Dashboard">Dashboard</a>
                 <a asp-controller="Analyses" asp-action="Create">Enviar diagrama</a>
             </div>
         </nav>
