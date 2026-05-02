@@ -4,17 +4,11 @@ using System.Diagnostics;
 
 namespace FIAPSecureAnalyzer.Site.Controllers
 {
-    public class HomeController : Controller
+    public class ReportsController : Controller
     {
-        public IActionResult Index()
+        public IActionResult Details(Guid analysisId)
         {
             return View();
         }
-
-        public IActionResult Dashboard()
-        {
-            return View();
-        }
-
     }
 }
