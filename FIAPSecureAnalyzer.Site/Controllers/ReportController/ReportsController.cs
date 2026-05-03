@@ -1,8 +1,8 @@
-using FIAPSecureAnalyzer.Site.Models;
+using FIAPSecureSystem.Site.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
-namespace FIAPSecureAnalyzer.Site.Controllers
+namespace FIAPSecureSystem.Site.Controllers
 {
     public class ReportsController : Controller
     {

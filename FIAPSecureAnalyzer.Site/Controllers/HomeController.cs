@@ -1,4 +1,4 @@
-using FIAPSecureAnalyzer.Site.Models;
+using FIAPSecureSystem.Site.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 

@@ -1,4 +1,4 @@
-namespace FIAPSecureAnalyzer.Site.Models
+namespace FIAPSecureSystem.Site.Models
 {
     public class ErrorViewModel
     {
