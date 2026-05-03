@@ -1,6 +1,6 @@
 ﻿using Shared.Kernel.Exceptions;
 
-namespace ReportService.Application.Exceptions;
+namespace ProcessingService.Application.Exceptions;
 
 public sealed class MessageHandlingException : AppException
 {

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.UseCases.StartAnalysisProcessing;
-using ReportService.Application.Exceptions;
+using ProcessingService.Application.Exceptions;
 using Shared.Contracts.IntegrationEvents;
 
 namespace ProcessingService.Application.Integration.Consumed;

@@ -8,7 +8,6 @@ using Shared.Contracts.IntegrationEvents;
 using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
 using Shared.Observability.Telemetry;
-using System.Diagnostics;
 using UploadService.Application.Abstractions.Clock;
 using UploadService.Application.Abstractions.Identity;
 using UploadService.Application.Abstractions.Messaging;

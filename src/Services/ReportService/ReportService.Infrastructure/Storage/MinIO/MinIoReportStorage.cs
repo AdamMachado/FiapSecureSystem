@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.HighPerformance.Helpers;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;
@@ -14,15 +15,18 @@ public sealed class MinIoReportStorage : IReportStorage
     private readonly IMinioClient _minioClient;
     private readonly StorageOptions _storageOptions;
     private readonly ActivitySource _activitySource;
+    private readonly ILogger<MinIoReportStorage> _logger;
 
     public MinIoReportStorage(
         IMinioClient minioClient,
         IOptions<StorageOptions> storageOptions,
-        ActivitySource activitySource)
+        ActivitySource activitySource,
+        ILogger<MinIoReportStorage> logger)
     {
         _minioClient = minioClient;
         _storageOptions = storageOptions.Value;
         _activitySource = activitySource;
+        _logger = logger;
     }
 
     public async Task<StoredReportDescriptor> UploadAsync(
@@ -104,6 +108,11 @@ public sealed class MinIoReportStorage : IReportStorage
 
         try
         {
+            _logger.LogInformation(
+                "Downloading object from MinIO. Bucket: {BucketName}, ObjectKey: {ObjectKey}",
+                bucketName,
+                objectKey);
+
             var stat = await _minioClient.StatObjectAsync(
                 new StatObjectArgs()
                     .WithBucket(bucketName)
@@ -121,6 +130,12 @@ public sealed class MinIoReportStorage : IReportStorage
 
             memoryStream.Position = 0;
 
+            _logger.LogInformation(
+                "Successfully downloaded object from MinIO. Bucket: {BucketName}, ObjectKey: {ObjectKey}, Size: {Size} bytes",
+                bucketName,
+                objectKey,
+                stat.Size);
+
             var fileName = Path.GetFileName(objectKey);
 
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -132,6 +147,12 @@ public sealed class MinIoReportStorage : IReportStorage
         }
         catch(Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Failed to download object from MinIO. Bucket: {BucketName}, ObjectKey: {ObjectKey}",
+                bucketName,
+                objectKey);
+
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.SetTag("exception.type", ex.GetType().FullName);
             activity?.SetTag("exception.message", ex.Message);

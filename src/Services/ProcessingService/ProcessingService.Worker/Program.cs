@@ -4,6 +4,10 @@ using ProcessingService.Worker;
 using Shared.Observability.Correlation;
 using Shared.Observability.Logging;
 using Shared.Observability.Telemetry;
+using System.Diagnostics;
+
+Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+Activity.ForceDefaultIdFormat = true;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -17,18 +21,15 @@ var serviceName =
     ?? ActivitySources.ProcessingService;
 
 builder.Services.AddCorrelationContext();
-
-builder.Services.AddSharedSerilog(
-    builder.Configuration,
-    serviceName);
-
-builder.Services.AddProcessingApplication();
-builder.Services.AddProcessingInfrastructure(builder.Configuration);
+builder.Services.AddSharedSerilog(builder.Configuration, serviceName);
 
 builder.Services.AddSharedOpenTelemetry(
     builder.Configuration,
     serviceName,
     ActivitySources.ProcessingService);
+
+builder.Services.AddProcessingApplication();
+builder.Services.AddProcessingInfrastructure(builder.Configuration);
 
 builder.Services.AddHostedService<WorkerLifecycleLogger>();
 

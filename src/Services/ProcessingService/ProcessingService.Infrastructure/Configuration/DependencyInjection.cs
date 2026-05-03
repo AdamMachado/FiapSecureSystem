@@ -27,6 +27,7 @@ using ProcessingService.Infrastructure.Persistence.UnitOfWork;
 using ProcessingService.Infrastructure.Storage.MinIO;
 using RabbitMQ.Client;
 using Shared.Observability.Correlation;
+using Shared.Observability.Telemetry;
 
 namespace ProcessingService.Infrastructure.Configuration;
 
@@ -36,6 +37,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton(_ => ActivitySources.Create(ActivitySources.ProcessingService));
+
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));

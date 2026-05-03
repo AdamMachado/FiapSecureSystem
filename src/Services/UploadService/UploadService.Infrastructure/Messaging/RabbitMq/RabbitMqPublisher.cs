@@ -43,8 +43,14 @@ public sealed class RabbitMqPublisher : IEventPublisher
         var exchange = ResolveExchange(integrationEvent);
         var routingKey = ResolveRoutingKey(integrationEvent);
 
+        _logger.LogInformation(
+            "Publishing integration event to RabbitMQ. EventType: {EventType}, Exchange: {Exchange}, RoutingKey: {RoutingKey}",
+            integrationEvent.EventType,
+            exchange,
+            routingKey);
+
         using var activity = _activitySource.StartActivity(
-            $"RabbitMQ publish {routingKey}", 
+            $"RabbitMQ publish {routingKey}",
             ActivityKind.Producer
         );
 

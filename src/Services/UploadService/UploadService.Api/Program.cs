@@ -18,6 +18,7 @@ var serviceName =
     builder.Configuration["OpenTelemetry:ServiceName"]
     ?? ActivitySources.UploadService;
 
+builder.Services.AddCorrelationContext();
 builder.Services.AddSharedSerilog(builder.Configuration, serviceName);
 
 builder.Services.AddSharedOpenTelemetry(
