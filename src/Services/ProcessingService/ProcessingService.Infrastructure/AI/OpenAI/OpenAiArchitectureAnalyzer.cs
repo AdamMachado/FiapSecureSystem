@@ -24,10 +24,13 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters =
+            {
+                new JsonStringEnumConverter()
+            }
         };
 
-        options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
 
@@ -207,7 +210,10 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
         }
         catch (JsonException ex)
         {
-            throw new AiResponseValidationException($"The AI response is not valid JSON for the expected schema. Details: {ex.Message}");
+            throw new AiResponseValidationException(
+                $"The AI response is not valid JSON for the expected schema." +
+                $"\nDetails: {ex.Message}" +
+                $"\nOutput Response: {outputText}");
         }
     }
 

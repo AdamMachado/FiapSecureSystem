@@ -113,7 +113,7 @@ public sealed class AnalysisProcess : AggregateRoot<Guid>
     }
 
     public void MarkAsCompleted(
-        ExtractedText extractedText,
+        ExtractedText? extractedText,
         IReadOnlyCollection<IdentifiedComponentDto> components,
         IReadOnlyCollection<ArchitecturalRiskDto> risks,
         IReadOnlyCollection<ArchitecturalRecommendationDto> recommendations,

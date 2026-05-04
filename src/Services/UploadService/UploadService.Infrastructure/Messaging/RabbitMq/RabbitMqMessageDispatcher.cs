@@ -10,6 +10,7 @@ using Shared.Observability.Messaging;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using UploadService.Infrastructure.Configuration.Options;
 using UploadService.Infrastructure.Messaging.RabbitMq.Internals;
 
@@ -17,7 +18,7 @@ namespace UploadService.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqMessageDispatcher
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonSerializerOptions();
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<RabbitMqMessageDispatcher> _logger;
@@ -173,6 +174,13 @@ public sealed class RabbitMqMessageDispatcher
                 _correlationContextAccessor.Clear();
             }
         };
+    }
+
+    private static JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 
     private async Task PublishToDeadLetterQueueAsync(

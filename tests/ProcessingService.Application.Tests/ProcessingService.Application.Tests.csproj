@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Services\ProcessingService\ProcessingService.Application\ProcessingService.Application.csproj" />
-    <ProjectReference Include="..\src\Services\ProcessingService\ProcessingService.Domain\ProcessingService.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Services\ProcessingService\ProcessingService.Application\ProcessingService.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\ProcessingService\ProcessingService.Domain\ProcessingService.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

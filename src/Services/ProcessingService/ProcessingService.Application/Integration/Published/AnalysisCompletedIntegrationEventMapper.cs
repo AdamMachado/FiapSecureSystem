@@ -32,7 +32,6 @@ public sealed class AnalysisCompletedIntegrationEventMapper
             domainEvent.AnalysisRequestId.Value,
             domainEvent.RequestedByUserId,
             domainEvent.CompletedAtUtc,
-            result,
-            domainEvent.Summary.Overview);
+            result);
     }
 }

@@ -91,8 +91,7 @@ public sealed class AnalysisMessageHandlersTests
                     0,
                     0,
                     false,
-                    Array.Empty<string>())),
-            "summary");
+                    Array.Empty<string>())));
 
         await handler.HandleAsync(integrationEvent, CancellationToken.None);
 

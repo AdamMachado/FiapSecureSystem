@@ -18,7 +18,11 @@ internal sealed record ArchitectureComponentResponse(
     string? Description,
     IReadOnlyCollection<string> Tags,
     IReadOnlyCollection<string> ConnectedTo,
-    IReadOnlyDictionary<string, string>? Metadata);
+    IReadOnlyCollection<ArchitectureComponentMetadataResponse>? Metadata);
+
+internal sealed record ArchitectureComponentMetadataResponse(
+    string Key,
+    string Value);
 
 internal sealed record ArchitectureRiskResponse(
     string Id,

@@ -88,7 +88,17 @@ public sealed class OpenAiArchitectureAnalysisClient
             throw CreateProviderException(response.StatusCode, body);
         }
 
-        var envelope = OpenAiResponseEnvelopeParser.Parse(body);
+        OpenAiResponseEnvelope envelope;
+
+        try
+        {
+            envelope = OpenAiResponseEnvelopeParser.Parse(body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse OpenAI analysis response envelope. ResponseBody: {ResponseBody}", TrimForException(body));
+                throw new ExternalAiUnavailableException("Failed to parse response from OpenAI.", ex);
+        }    
 
         _logger.LogInformation(
             "Received architecture analysis response from OpenAI. OutputTextLength: {OutputTextLength} characters, Usage: {UsageMetrics}",

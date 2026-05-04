@@ -12,12 +12,9 @@ public sealed class ExtractedText : ValueObject
         Value = value;
     }
 
-    public static ExtractedText Create(string value)
+    public static ExtractedText Create(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ValidationException("Extracted text cannot be empty.");
-
-        return new ExtractedText(value.Trim());
+        return new ExtractedText(value?.Trim() ?? string.Empty);
     }
 
     public override string ToString() => Value;

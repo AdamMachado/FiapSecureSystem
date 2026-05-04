@@ -15,6 +15,7 @@ using ProcessingService.Infrastructure.AI.Inspection;
 using ProcessingService.Infrastructure.AI.OpenAI;
 using ProcessingService.Infrastructure.AI.Options;
 using ProcessingService.Infrastructure.AI.Policies;
+using ProcessingService.Infrastructure.AI.StubAnalysis;
 using ProcessingService.Infrastructure.AI.Validation;
 using ProcessingService.Infrastructure.Clock;
 using ProcessingService.Infrastructure.Configuration.Options;
@@ -127,7 +128,19 @@ public static class DependencyInjection
         services.AddScoped<AiUsageLogger>();
         services.AddScoped<IAnalysisFileInspector, ImageAnalysisFileInspector>();
         services.AddScoped<IAnalysisFileInspector, PdfAnalysisFileInspector>();
-        services.AddScoped<IArchitectureAnalyzer, OpenAiArchitectureAnalyzer>();
+
+        services.Configure<AiPipelineOptions>(
+        configuration.GetSection(AiPipelineOptions.SectionName));
+
+        var aiPipelineOptions = configuration
+            .GetSection(AiPipelineOptions.SectionName)
+            .Get<AiPipelineOptions>() ?? new AiPipelineOptions();
+
+        // Conditional registration of the architecture analyzer based on configuration
+        if (aiPipelineOptions.UseStubAnalyzer)
+            services.AddScoped<IArchitectureAnalyzer, StubArchitectureAnalyzer>();
+        else
+            services.AddScoped<IArchitectureAnalyzer, OpenAiArchitectureAnalyzer>();
 
         var database = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
 

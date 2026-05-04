@@ -157,11 +157,13 @@ services:
 
       OpenAI__ApiKey: ${OPENAI_API_KEY}
       OpenAI__Model: gpt-4o
-      OpenAI__ServiceTier: flex
+      OpenAI__ServiceTier: auto
 
       OpenTelemetry__ServiceName: SOAT.ProcessingService.Worker
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+      AiPipeline__UseStubAnalyzer: ${AI_PIPELINE_USE_STUB_ANALYZER}
     networks:
       - soat-net
 
@@ -280,7 +282,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 70s
+      start_period: 50s
     networks:
       - soat-net
 
