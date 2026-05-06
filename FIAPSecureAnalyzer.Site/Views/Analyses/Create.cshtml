@@ -1,0 +1,94 @@
+﻿@{
+    ViewData["Title"] = "Enviar Diagrama";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/upload.css" asp-append-version="true" />
+}
+
+<section class="upload-page">
+
+    <div class="upload-header">
+        <div>
+            <span class="page-label">Nova análise</span>
+            <h1>Enviar diagrama</h1>
+            <p>Envie um PDF, PNG ou JPEG para análise automática.</p>
+        </div>
+
+        <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <form asp-controller="Analyses" asp-action="Upload" method="post" enctype="multipart/form-data">
+
+        <div class="upload-card">
+
+            <label class="dropzone" id="dropzone">
+                <input type="file" name="file" id="fileInput" hidden />
+
+                <div class="drop-content">
+                    <span class="icon">📂</span>
+                    <strong>Arraste seu arquivo aqui</strong>
+                    <p>ou clique para selecionar</p>
+                    <small>PDF, PNG ou JPEG • até 10MB</small>
+                </div>
+            </label>
+
+            <div class="file-preview" id="filePreview" style="display:none;">
+                <strong id="fileName"></strong>
+                <span id="fileSize"></span>
+            </div>
+
+        </div>
+
+        <div class="upload-actions">
+            <button type="submit" class="app-btn app-btn-primary">
+                Enviar para análise
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+@section Scripts {
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const input = document.getElementById('fileInput');
+        const preview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+
+        dropzone.addEventListener('click', () => input.click());
+
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            showFile(file);
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragging');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragging');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragging');
+
+            const file = e.dataTransfer.files[0];
+            input.files = e.dataTransfer.files;
+            showFile(file);
+        });
+
+        function showFile(file) {
+            preview.style.display = 'block';
+            fileName.innerText = file.name;
+            fileSize.innerText = (file.size / 1024 / 1024).toFixed(2) + " MB";
+        }
+    </script>
+}

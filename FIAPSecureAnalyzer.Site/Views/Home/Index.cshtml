@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "FIAP Secure System";
+}
+
+<section class="hero">
+    <div class="hero-left">
+        <img src="~/images/logo.png" class="img-outdoor" alt="FIAP Secure System" />
+
+        <span class="hero-badge">Secure Systems • AI Architecture Review</span>
+
+        <h1>Análise inteligente de arquitetura com IA</h1>
+
+        <p>
+            Envie diagramas em PDF ou imagem e receba insights sobre componentes,
+            riscos arquiteturais e recomendações técnicas.
+        </p>
+
+        <div class="actions">
+            <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
+                Enviar diagrama
+            </a>
+        </div>
+    </div>
+
+    <div class="status-card pipeline-demo">
+        <span class="card-label">Seu próximo passo</span>
+        <h3>Transforme sua Arquitetura</h3>
+
+        <div class="status-step pipeline-step step-1">
+            <span>✓</span>
+            <strong>Menos riscos</strong>
+        </div>
+
+        <div class="status-step pipeline-step step-2">
+            <span>✓</span>
+            <strong>Mais estabilidade</strong>
+        </div>
+
+        <div class="status-step pipeline-step step-3">
+            <span>✓</span>
+            <strong>Decisões seguras</strong>
+        </div>
+    </div>
+</section>
+
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/landing.css" asp-append-version="true" />
+}

@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/dashboard.css" asp-append-version="true" />
+}
+
+<section class="dashboard-page">
+    <div class="dashboard-header">
+        <div>
+            <span class="page-label">Visão geral</span>
+            <h1>Dashboard</h1>
+            <p>Acompanhe as análises enviadas e o status do pipeline.</p>
+        </div>
+
+        <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
+            Enviar diagrama
+        </a>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-card">
+            <span>Total</span>
+            <strong>12</strong>
+            <p>Análises criadas</p>
+        </div>
+
+        <div class="summary-card">
+            <span>Processando</span>
+            <strong>3</strong>
+            <p>Em andamento</p>
+        </div>
+
+        <div class="summary-card">
+            <span>Analisadas</span>
+            <strong>8</strong>
+            <p>Relatórios disponíveis</p>
+        </div>
+
+        <div class="summary-card danger">
+            <span>Erro</span>
+            <strong>1</strong>
+            <p>Falhas encontradas</p>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header-row">
+            <div>
+                <h2>Últimas análises</h2>
+                <p>Histórico recente dos diagramas enviados.</p>
+            </div>
+        </div>
+
+        <div class="analysis-list">
+
+            <div class="analysis-row">
+                <div class="analysis-info">
+                    <strong>arquitetura-pagamentos.pdf</strong>
+                    <span>Enviado em 02/05 • PDF</span>
+                </div>
+
+                <div class="analysis-meta">
+                    <span class="status-pill processing">Processando</span>
+                    <a asp-controller="Analyses" asp-action="Details" class="link">
+                        Ver detalhes →
+                    </a>
+                </div>
+            </div>
+
+            <div class="analysis-row">
+                <div class="analysis-info">
+                    <strong>ecommerce-cloud.png</strong>
+                    <span>Enviado em 01/05 • PNG</span>
+                </div>
+
+                <div class="analysis-meta">
+                    <span class="status-pill completed">Analisado</span>
+                    <a class="link">Ver relatório →</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>

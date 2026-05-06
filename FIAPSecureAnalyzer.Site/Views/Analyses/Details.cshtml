@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "Detalhes da Análise";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/analysis-details.css" asp-append-version="true" />
+}
+
+<section class="analysis-details">
+
+    <div class="details-header">
+        <div>
+            <span class="page-label">Análise</span>
+            <h1>arquitetura-pagamentos.pdf</h1>
+            <p>ID: 11111111-1111-1111-1111-111111111111</p>
+        </div>
+
+        <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <!-- STATUS TIMELINE -->
+    <div class="timeline-card">
+        <h2>Status do processamento</h2>
+
+        <div class="timeline">
+
+            <div class="timeline-step done">
+                <span>✓</span>
+                <div>
+                    <strong>Recebido</strong>
+                    <p>Arquivo enviado com sucesso</p>
+                </div>
+            </div>
+
+            <div class="timeline-step active">
+                <span>⏳</span>
+                <div>
+                    <strong>Processando</strong>
+                    <p>IA analisando o diagrama</p>
+                </div>
+            </div>
+
+            <div class="timeline-step">
+                <span>✓</span>
+                <div>
+                    <strong>Analisado</strong>
+                    <p>Aguardando conclusão</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- INFORMAÇÕES -->
+    <div class="info-grid">
+
+        <div class="info-card">
+            <h3>Informações</h3>
+            <ul>
+                <li><strong>Tipo:</strong> PDF</li>
+                <li><strong>Tamanho:</strong> 1.2 MB</li>
+                <li><strong>Enviado em:</strong> 02/05/2026</li>
+            </ul>
+        </div>
+
+        <div class="info-card">
+            <h3>Status</h3>
+            <span class="status-pill processing">Processando</span>
+        </div>
+
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div class="report-card">
+        <h2>Relatório</h2>
+
+        <p>Disponível após a conclusão da análise.</p>
+
+        <button class="app-btn app-btn-primary" disabled>
+            Baixar relatório
+        </button>
+    </div>
+
+</section>

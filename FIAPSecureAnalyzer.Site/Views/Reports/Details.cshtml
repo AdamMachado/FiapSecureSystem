@@ -1,0 +1,127 @@
+﻿@{
+    ViewData["Title"] = "Relatório";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/report.css" asp-append-version="true" />
+}
+
+<section class="report-page">
+    <div class="report-header">
+        <div>
+            <span class="page-label">Relatório técnico</span>
+            <h1>Resultado da análise</h1>
+            <p>Componentes identificados, riscos arquiteturais e recomendações.</p>
+        </div>
+
+        <div class="report-actions">
+            <a asp-controller="Analyses" asp-action="Details" asp-route-id="11111111-1111-1111-1111-111111111111"
+                   class="app-btn app-btn-secondary">
+                Voltar
+            </a>
+
+            <a href="#" class="app-btn app-btn-primary">
+                Download PDF
+            </a>
+        </div>
+    </div>
+
+    <div class="report-grid">
+        <div class="report-card summary-card">
+            <span>Componentes</span>
+            <strong>8</strong>
+            <p>Itens identificados no diagrama.</p>
+        </div>
+
+        <div class="report-card summary-card">
+            <span>Riscos</span>
+            <strong>3</strong>
+            <p>Pontos de atenção encontrados.</p>
+        </div>
+
+        <div class="report-card summary-card">
+            <span>Recomendações</span>
+            <strong>5</strong>
+            <p>Melhorias sugeridas.</p>
+        </div>
+    </div>
+
+    <div class="report-content">
+        <div class="report-card">
+            <h2>Resumo executivo</h2>
+            <p>
+                A arquitetura apresenta uma composição baseada em serviços, banco de dados e mensageria.
+                Foram identificados pontos positivos de separação de responsabilidades, porém existem riscos
+                relacionados à observabilidade, segurança de comunicação e resiliência.
+            </p>
+        </div>
+
+        <div class="report-card">
+            <h2>Componentes identificados</h2>
+
+            <div class="report-list">
+                <div class="report-item">
+                    <strong>API Gateway</strong>
+                    <span>Entrada principal para os serviços internos.</span>
+                </div>
+
+                <div class="report-item">
+                    <strong>Upload Service</strong>
+                    <span>Responsável pelo recebimento dos diagramas.</span>
+                </div>
+
+                <div class="report-item">
+                    <strong>Processing Service</strong>
+                    <span>Executa processamento e análise com IA.</span>
+                </div>
+
+                <div class="report-item">
+                    <strong>Report Service</strong>
+                    <span>Gera e disponibiliza o relatório técnico.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <h2>Riscos arquiteturais</h2>
+
+            <div class="risk-list">
+                <div class="risk-item high">
+                    <span>Alta</span>
+                    <div>
+                        <strong>Falha na comunicação entre serviços</strong>
+                        <p>Ausência de retry/circuit breaker pode causar perda temporária de fluxo.</p>
+                    </div>
+                </div>
+
+                <div class="risk-item medium">
+                    <span>Média</span>
+                    <div>
+                        <strong>Observabilidade incompleta</strong>
+                        <p>Sem rastreamento distribuído, erros entre serviços ficam difíceis de diagnosticar.</p>
+                    </div>
+                </div>
+
+                <div class="risk-item low">
+                    <span>Baixa</span>
+                    <div>
+                        <strong>Padronização de logs</strong>
+                        <p>Logs inconsistentes podem prejudicar auditoria e suporte.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <h2>Recomendações</h2>
+
+            <ul class="recommendation-list">
+                <li>Adicionar correlation-id em todas as chamadas HTTP e mensagens.</li>
+                <li>Configurar health checks para banco, RabbitMQ e MinIO.</li>
+                <li>Aplicar validação de tipo e tamanho no upload.</li>
+                <li>Adicionar retries controlados nas chamadas entre serviços.</li>
+                <li>Documentar limitações da análise feita por IA.</li>
+            </ul>
+        </div>
+    </div>
+</section>
