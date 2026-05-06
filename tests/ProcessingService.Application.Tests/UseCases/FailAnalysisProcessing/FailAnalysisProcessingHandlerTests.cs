@@ -11,6 +11,7 @@ using ProcessingService.Domain.Enums;
 using ProcessingService.Domain.Events;
 using ProcessingService.Domain.ValueObjects;
 using Shared.Contracts.IntegrationEvents.Abstractions;
+using System.Diagnostics;
 using Xunit;
 
 namespace ProcessingService.Application.Tests.UseCases.FailAnalysisProcessing;
@@ -23,6 +24,7 @@ public sealed class CompleteAnalysisProcessingHandlerTests
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingFailedDomainEvent>> _mapper = new();
     private readonly Mock<ILogger<FailAnalysisProcessingHandler>> _logger = new();
+    private readonly ActivitySource _activitySource = new("ProcessingService.Application.Tests");
 
     private FailAnalysisProcessingHandler CreateHandler()
     {
@@ -32,7 +34,8 @@ public sealed class CompleteAnalysisProcessingHandlerTests
             _dateTimeProvider.Object,
             _eventPublisher.Object,
             _mapper.Object,
-            _logger.Object);
+            _logger.Object,
+            _activitySource);
     }
 
     [Fact]

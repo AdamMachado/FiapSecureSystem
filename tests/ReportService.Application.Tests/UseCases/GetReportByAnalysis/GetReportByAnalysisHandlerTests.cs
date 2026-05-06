@@ -4,12 +4,15 @@ using ReportService.Application.Abstractions.Persistence;
 using ReportService.Application.UseCases.GetReportByAnalysis;
 using ReportService.Domain.Entities;
 using ReportService.Domain.Enums;
+using System.Diagnostics;
 using Xunit;
 
 namespace ReportService.Application.Tests.UseCases.GetReportByAnalysis;
 
 public sealed class GetReportByAnalysisHandlerTests
 {
+    private readonly ActivitySource _activitySource = new("ReportService.Application.Tests");
+
     [Fact]
     public async Task HandleAsync_Should_Return_Report_When_It_Exists()
     {
@@ -35,7 +38,7 @@ public sealed class GetReportByAnalysisHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
 
-        var handler = new GetReportByAnalysisHandler(repository.Object);
+        var handler = new GetReportByAnalysisHandler(repository.Object, _activitySource);
 
         var result = await handler.HandleAsync(
             new GetReportByAnalysisQuery(analysisRequestId),
@@ -52,7 +55,7 @@ public sealed class GetReportByAnalysisHandlerTests
             .Setup(x => x.GetByAnalysisRequestIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AnalysisReport?)null);
 
-        var handler = new GetReportByAnalysisHandler(repository.Object);
+        var handler = new GetReportByAnalysisHandler(repository.Object, _activitySource);
 
         var result = await handler.HandleAsync(
             new GetReportByAnalysisQuery(Guid.NewGuid()),

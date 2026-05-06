@@ -7,10 +7,11 @@ using ReportService.Application.Abstractions.Rendering;
 using ReportService.Application.Abstractions.Storage;
 using ReportService.Application.UseCases.GenerateReport;
 using ReportService.Domain.Entities;
-using ReportService.Domain.Events;
 using ReportService.Domain.Enums;
+using ReportService.Domain.Events;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.IntegrationEvents.Schemas;
+using System.Diagnostics;
 using Xunit;
 
 namespace ReportService.Application.Tests.UseCases.GenerateReport;
@@ -24,6 +25,7 @@ public sealed class GenerateReportHandlerTests
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<ReportGeneratedDomainEvent>> _generatedEventMapper = new();
+    private readonly ActivitySource _activitySource = new("ReportService.Application.Tests");
 
     private GenerateReportHandler CreateHandler()
     {
@@ -35,7 +37,8 @@ public sealed class GenerateReportHandlerTests
             _renderer.Object,
             _storage.Object,
             _eventPublisher.Object,
-            _generatedEventMapper.Object);
+            _generatedEventMapper.Object,
+            _activitySource);
     }
 
     [Fact]

@@ -12,6 +12,7 @@ using ProcessingService.Domain.ValueObjects;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.IntegrationEvents.Enums;
 using Shared.Contracts.IntegrationEvents.Schemas;
+using System.Diagnostics;
 
 namespace ProcessingService.Application.Tests.UseCases.CompleteAnalysisProcessing;
 
@@ -23,6 +24,7 @@ public sealed class CompleteAnalysisProcessingHandlerTests
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisProcessingCompletedDomainEvent>> _mapper = new();
     private readonly Mock<ILogger<CompleteAnalysisProcessingHandler>> _logger = new();
+    private readonly ActivitySource _activitySource = new("ProcessingService.Application.Tests");
 
     private CompleteAnalysisProcessingHandler CreateHandler()
     {
@@ -32,7 +34,8 @@ public sealed class CompleteAnalysisProcessingHandlerTests
             _dateTimeProvider.Object,
             _eventPublisher.Object,
             _mapper.Object,
-            _logger.Object);
+            _logger.Object,
+            _activitySource);
     }
 
     [Fact]

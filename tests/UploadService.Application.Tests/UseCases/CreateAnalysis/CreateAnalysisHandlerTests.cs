@@ -1,15 +1,16 @@
 ﻿using FluentAssertions;
 using Moq;
+using Shared.Contracts.IntegrationEvents.Abstractions;
+using Shared.Kernel.Result;
+using System.Diagnostics;
 using UploadService.Application.Abstractions.Clock;
 using UploadService.Application.Abstractions.Identity;
+using UploadService.Application.Abstractions.Messaging;
 using UploadService.Application.Abstractions.Persistence;
 using UploadService.Application.Abstractions.Storage;
-using UploadService.Application.Abstractions.Messaging;
 using UploadService.Application.UseCases.CreateAnalysis;
 using UploadService.Domain.Events;
 using UploadService.Domain.ValueObjects;
-using Shared.Contracts.IntegrationEvents.Abstractions;
-using Shared.Kernel.Result;
 using Xunit;
 
 namespace UploadService.Application.Tests.UseCases.CreateAnalysis;
@@ -25,6 +26,7 @@ public sealed class CreateAnalysisHandlerTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IIntegrationEventMapper<AnalysisRequestCreatedDomainEvent>> _mapper = new();
+    private readonly ActivitySource _activitySource = new("UploadService.Application.Tests");
 
     private CreateAnalysisHandler CreateHandler()
     {
@@ -38,7 +40,8 @@ public sealed class CreateAnalysisHandlerTests
             _repository.Object,
             _unitOfWork.Object,
             _eventPublisher.Object,
-            _mapper.Object);
+            _mapper.Object,
+            _activitySource);
     }
 
     [Fact]

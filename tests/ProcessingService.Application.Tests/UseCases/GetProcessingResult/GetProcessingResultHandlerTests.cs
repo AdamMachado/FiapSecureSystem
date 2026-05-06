@@ -7,6 +7,7 @@ using ProcessingService.Application.UseCases.GetProcessingResult;
 using ProcessingService.Domain.Entities;
 using ProcessingService.Domain.Enums;
 using ProcessingService.Domain.ValueObjects;
+using System.Diagnostics;
 
 namespace ProcessingService.Application.Tests.UseCases.GetProcessingResult;
 
@@ -14,6 +15,7 @@ public sealed class GetProcessingResultHandlerTests
 {
     private readonly Mock<IAnalysisProcessRepository> _repository = new();
     private readonly Mock<ILogger<GetProcessingResultHandler>> _logger = new();
+    private readonly ActivitySource _activitySource = new("ProcessingService.Application.Tests");
 
     [Fact]
     public async Task HandleAsync_Should_Return_Result_When_Process_Exists()
@@ -27,7 +29,7 @@ public sealed class GetProcessingResultHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(process);
 
-        var handler = new GetProcessingResultHandler(_repository.Object, _logger.Object);
+        var handler = new GetProcessingResultHandler(_repository.Object, _logger.Object, _activitySource);
 
         var result = await handler.HandleAsync(
             new GetProcessingResultQuery(analysisRequestId),
@@ -48,7 +50,7 @@ public sealed class GetProcessingResultHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((AnalysisProcess?)null);
 
-        var handler = new GetProcessingResultHandler(_repository.Object, _logger.Object);
+        var handler = new GetProcessingResultHandler(_repository.Object, _logger.Object, _activitySource);
 
         var result = await handler.HandleAsync(
             new GetProcessingResultQuery(analysisRequestId),

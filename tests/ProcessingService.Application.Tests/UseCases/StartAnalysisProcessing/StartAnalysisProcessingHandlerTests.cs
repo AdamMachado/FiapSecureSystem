@@ -16,6 +16,7 @@ using ProcessingService.Domain.ValueObjects;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.IntegrationEvents.Enums;
 using Shared.Contracts.IntegrationEvents.Schemas;
+using System.Diagnostics;
 
 namespace ProcessingService.Application.Tests.UseCases.StartAnalysisProcessing;
 
@@ -36,6 +37,8 @@ public sealed class StartAnalysisProcessingHandlerTests
     private readonly Mock<ILogger<FailAnalysisProcessingHandler>> _loggerFail = new();
     private readonly Mock<ILogger<StartAnalysisProcessingHandler>> _loggerStart = new();
 
+    private readonly ActivitySource _activitySource = new("ProcessingService.Application.Tests");
+
     private StartAnalysisProcessingHandler CreateHandler()
     {
         var completeHandler = new CompleteAnalysisProcessingHandler(
@@ -44,7 +47,8 @@ public sealed class StartAnalysisProcessingHandlerTests
             _dateTimeProvider.Object,
             _eventPublisher.Object,
             _completedMapper.Object,
-            _loggerComplete.Object);
+            _loggerComplete.Object,
+            _activitySource);
 
         var failHandler = new FailAnalysisProcessingHandler(
             _repository.Object,
@@ -52,7 +56,8 @@ public sealed class StartAnalysisProcessingHandlerTests
             _dateTimeProvider.Object,
             _eventPublisher.Object,
             _failedMapper.Object,
-            _loggerFail.Object);
+            _loggerFail.Object,
+            _activitySource);
 
         return new StartAnalysisProcessingHandler(
             _repository.Object,
@@ -64,7 +69,8 @@ public sealed class StartAnalysisProcessingHandlerTests
             _startedMapper.Object,
             completeHandler,
             failHandler,
-            _loggerStart.Object);
+            _loggerStart.Object,
+            _activitySource);
     }
 
     [Fact]

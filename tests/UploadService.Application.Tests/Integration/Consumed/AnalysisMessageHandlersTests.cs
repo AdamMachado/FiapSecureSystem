@@ -2,6 +2,7 @@
 using Moq;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Schemas;
+using System.Diagnostics;
 using UploadService.Application.Abstractions.Clock;
 using UploadService.Application.Abstractions.Persistence;
 using UploadService.Application.Integration.Consumed;
@@ -18,13 +19,15 @@ public sealed class AnalysisMessageHandlersTests
     private readonly Mock<IAnalysisRequestRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
+    private readonly ActivitySource _activitySource = new("UploadService.Application.Tests");
 
     private UpdateAnalysisStatusHandler CreateUpdateHandler()
     {
         return new UpdateAnalysisStatusHandler(
             _repository.Object,
             _unitOfWork.Object,
-            _dateTimeProvider.Object);
+            _dateTimeProvider.Object,
+            _activitySource);
     }
 
     [Fact]

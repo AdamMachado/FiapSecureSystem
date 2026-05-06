@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.VisualBasic.FileIO;
 using Moq;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Timers;
 using UploadService.Application.Abstractions.Clock;
@@ -18,13 +19,15 @@ public sealed class UpdateAnalysisStatusHandlerTests
     private readonly Mock<IAnalysisRequestRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
+    private readonly ActivitySource _activitySource = new("UploadService.Application.Tests");
 
     private UpdateAnalysisStatusHandler CreateHandler()
     {
         return new UpdateAnalysisStatusHandler(
             _repository.Object,
             _unitOfWork.Object,
-            _dateTimeProvider.Object);
+            _dateTimeProvider.Object,
+            _activitySource);
     }
 
     [Fact]
