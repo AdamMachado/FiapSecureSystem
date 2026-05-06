@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog.Context;
 using Shared.Contracts.Messaging;
+using System.Diagnostics;
 
 namespace Shared.Observability.Correlation;
 
@@ -28,13 +29,26 @@ public static class CorrelationMiddlewareExtensions
 
             context.Response.Headers[HeaderNames.CorrelationId] = correlationId;
 
+            Activity.Current?.AddTag("correlation.id", correlationId);
+
+            if(!string.IsNullOrEmpty(causationId))
+            {
+                context.Response.Headers[HeaderNames.CausationId] = causationId;
+                Activity.Current?.AddTag("causation.id", causationId);
+            }
+
             using (LogContext.PushProperty("CorrelationId", correlationId))
             using (LogContext.PushProperty("CausationId", causationId ?? string.Empty))
             {
-                await next();
+                try
+                {
+                    await next();
+                }
+                finally
+                {
+                    accessor.Clear();
+                }
             }
-
-            accessor.Clear();
         });
     }
 

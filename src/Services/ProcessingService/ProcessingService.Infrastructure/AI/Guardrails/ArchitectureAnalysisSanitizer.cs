@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using ProcessingService.Infrastructure.AI.OpenAI;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using ProcessingService.Infrastructure.AI.Options;
 
 namespace ProcessingService.Infrastructure.AI.Guardrails;
@@ -98,7 +98,7 @@ public sealed class ArchitectureAnalysisSanitizer
             .ToArray();
     }
 
-    private static IReadOnlyDictionary<string, string>? NormalizeMetadata(IReadOnlyDictionary<string, string>? metadata)
+    private static IReadOnlyCollection<ArchitectureComponentMetadataResponse>? NormalizeMetadata(IReadOnlyCollection<ArchitectureComponentMetadataResponse>? metadata)
     {
         if (metadata is null || metadata.Count == 0)
             return null;
@@ -106,10 +106,8 @@ public sealed class ArchitectureAnalysisSanitizer
         return metadata
             .Where(static pair => !string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
             .Take(20)
-            .ToDictionary(
-                pair => NormalizeText(pair.Key, 80),
-                pair => NormalizeText(pair.Value, 200),
-                StringComparer.OrdinalIgnoreCase);
+            .Select(pair => new ArchitectureComponentMetadataResponse(pair.Key, pair.Value))
+            .ToArray();
     }
 
     private static string? NormalizeReference(string? id, ISet<string> validIds)

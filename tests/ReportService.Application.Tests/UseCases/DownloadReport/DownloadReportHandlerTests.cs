@@ -5,6 +5,7 @@ using ReportService.Application.Abstractions.Storage;
 using ReportService.Application.UseCases.DownloadReport;
 using ReportService.Domain.Entities;
 using ReportService.Domain.Enums;
+using System.Diagnostics;
 using Xunit;
 
 namespace ReportService.Application.Tests.UseCases.DownloadReport;
@@ -13,12 +14,14 @@ public sealed class DownloadReportHandlerTests
 {
     private readonly Mock<IAnalysisReportRepository> _repository = new();
     private readonly Mock<IReportStorage> _storage = new();
+    private readonly ActivitySource _activitySource = new("ReportService.Application.Tests");
 
     private DownloadReportHandler CreateHandler()
     {
         return new DownloadReportHandler(
             _repository.Object,
-            _storage.Object);
+            _storage.Object,
+            _activitySource);
     }
     [Fact]
     public async Task HandleAsync_Should_Return_File_When_Report_And_Object_Exist()

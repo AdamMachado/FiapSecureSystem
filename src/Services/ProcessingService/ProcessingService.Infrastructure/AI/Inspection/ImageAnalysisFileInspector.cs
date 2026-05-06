@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Domain.Enums;
@@ -10,10 +11,12 @@ namespace ProcessingService.Infrastructure.AI.Inspection;
 public sealed class ImageAnalysisFileInspector : IAnalysisFileInspector
 {
     private readonly ArchitectureAnalysisOptions _options;
+    private readonly ILogger<ImageAnalysisFileInspector> _logger;
 
-    public ImageAnalysisFileInspector(IOptions<ArchitectureAnalysisOptions> options)
+    public ImageAnalysisFileInspector(IOptions<ArchitectureAnalysisOptions> options, ILogger<ImageAnalysisFileInspector> logger)
     {
         _options = options.Value;
+        _logger = logger;
     }
 
     public bool CanInspect(DiagramType diagramType)
@@ -27,6 +30,12 @@ public sealed class ImageAnalysisFileInspector : IAnalysisFileInspector
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.LogInformation(
+            "Inspecting image file for architecture analysis. DiagramType: {DiagramType}, ContentType: {ContentType}, Size: {Size} bytes",
+            request.DiagramType,
+            request.ContentType,
+            content.Length);
 
         ImageInfo imageInfo;
 
@@ -54,6 +63,15 @@ public sealed class ImageAnalysisFileInspector : IAnalysisFileInspector
         var aspectRatio = imageInfo.Width / (double)Math.Max(imageInfo.Height, 1);
         if (aspectRatio is > 6.0 or < 0.16)
             warnings.Add("The image aspect ratio is unusual and may reduce analysis quality.");
+
+        _logger.LogInformation(
+            "Completed inspection of image file. DiagramType: {DiagramType}, ContentType: {ContentType}, Size: {Size} bytes, Width: {Width}px, Height: {Height}px, Warnings: {WarningsCount}",
+            request.DiagramType,
+            request.ContentType,
+            content.Length,
+            imageInfo.Width,
+            imageInfo.Height,
+            warnings.Count);
 
         return Task.FromResult(new AnalysisFileInspectionResult(
             request.DiagramType,

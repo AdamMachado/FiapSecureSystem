@@ -11,5 +11,7 @@ public sealed class RabbitMqOptions
     public string Password { get; init; } = "guest";
     public string ClientProvidedName { get; init; } = "processing-service";
     public bool UseSsl { get; init; }
-    public ushort PrefetchCount { get; init; } = 10;
+    public ushort PrefetchCount { get; init; } = 5;
+    public int MaxRetryCount { get; init; } = 3;
+    public int RetryDelayMilliseconds { get; init; } = 30000;
 }

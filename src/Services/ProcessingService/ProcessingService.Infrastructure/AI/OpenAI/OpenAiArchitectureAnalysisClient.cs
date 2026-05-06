@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Domain.Enums;
-using ProcessingService.Infrastructure.AI.Diagnostics;
 using ProcessingService.Infrastructure.AI.Exceptions;
 using ProcessingService.Infrastructure.AI.Inspection;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using ProcessingService.Infrastructure.AI.Options;
 
 namespace ProcessingService.Infrastructure.AI.OpenAI;
@@ -68,20 +68,44 @@ public sealed class OpenAiArchitectureAnalysisClient
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(_options.TimeoutSeconds, 30)));
 
+        _logger.LogInformation(
+            "Sending architecture analysis request to OpenAI. Model: {Model}, ServiceTier: {ServiceTier}, PayloadSize: {PayloadSize} bytes",
+            _options.Model,
+            serviceTier ?? "default",
+            httpRequest.Content.Headers.ContentLength ?? 0);
+
         using var response = await _httpClient.SendAsync(httpRequest, timeout.Token);
+
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw CreateProviderException(response.StatusCode, body);
-
-        var outputText = ExtractOutputText(body);
-        if (string.IsNullOrWhiteSpace(outputText))
         {
-            _logger.LogWarning("OpenAI response did not include output text. RawBody={RawBody}", body);
-            throw new ExternalAiUnavailableException("OpenAI response did not include output text.");
+            _logger.LogError(
+                "OpenAI architecture analysis request failed. StatusCode: {StatusCode}, ResponseBody: {ResponseBody}",
+                response.StatusCode,
+                TrimForException(body));
+
+            throw CreateProviderException(response.StatusCode, body);
         }
 
-        return new OpenAiResponseEnvelope(outputText, ExtractUsage(body));
+        OpenAiResponseEnvelope envelope;
+
+        try
+        {
+            envelope = OpenAiResponseEnvelopeParser.Parse(body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse OpenAI analysis response envelope. ResponseBody: {ResponseBody}", TrimForException(body));
+                throw new ExternalAiUnavailableException("Failed to parse response from OpenAI.", ex);
+        }    
+
+        _logger.LogInformation(
+            "Received architecture analysis response from OpenAI. OutputTextLength: {OutputTextLength} characters, Usage: {UsageMetrics}",
+            envelope.OutputText.Length,
+            envelope.Usage?.ToString() ?? "N/A");
+
+        return envelope;
     }
 
     private Uri BuildResponsesEndpoint()
@@ -176,60 +200,5 @@ public sealed class OpenAiArchitectureAnalysisClient
     private static string TrimForException(string value)
     {
         return value.Length <= 1_000 ? value : value[..1_000];
-    }
-
-    private static string ExtractOutputText(string body)
-    {
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
-
-        if (root.TryGetProperty("output_text", out var outputText) && outputText.ValueKind == JsonValueKind.String)
-            return outputText.GetString() ?? string.Empty;
-
-        if (!root.TryGetProperty("output", out var output) || output.ValueKind != JsonValueKind.Array)
-            return string.Empty;
-
-        foreach (var outputItem in output.EnumerateArray())
-        {
-            if (!outputItem.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
-                continue;
-
-            foreach (var contentItem in content.EnumerateArray())
-            {
-                if (contentItem.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
-                    return text.GetString() ?? string.Empty;
-            }
-        }
-
-        return string.Empty;
-    }
-
-    private static AiUsageMetrics? ExtractUsage(string body)
-    {
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
-
-        if (!root.TryGetProperty("usage", out var usage) || usage.ValueKind != JsonValueKind.Object)
-            return null;
-
-        int? inputTokens = TryGetInt(usage, "input_tokens") ?? TryGetInt(usage, "prompt_tokens");
-        int? outputTokens = TryGetInt(usage, "output_tokens") ?? TryGetInt(usage, "completion_tokens");
-        int? totalTokens = TryGetInt(usage, "total_tokens");
-        int? cachedTokens = null;
-
-        if (usage.TryGetProperty("input_tokens_details", out var inputDetails) && inputDetails.ValueKind == JsonValueKind.Object)
-            cachedTokens = TryGetInt(inputDetails, "cached_tokens");
-
-        if (cachedTokens is null && usage.TryGetProperty("prompt_tokens_details", out var promptDetails) && promptDetails.ValueKind == JsonValueKind.Object)
-            cachedTokens = TryGetInt(promptDetails, "cached_tokens");
-
-        return new AiUsageMetrics(inputTokens, cachedTokens, outputTokens, totalTokens);
-    }
-
-    private static int? TryGetInt(JsonElement element, string propertyName)
-    {
-        return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var value)
-            ? value
-            : null;
     }
 }

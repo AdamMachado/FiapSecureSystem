@@ -18,7 +18,13 @@ public sealed class RabbitMqChannel : IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         var connection = await factory.CreateConnectionAsync(cancellationToken);
-        var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
+
+        var channelOptions = new CreateChannelOptions(
+            publisherConfirmationsEnabled: true,
+            publisherConfirmationTrackingEnabled: true,
+            outstandingPublisherConfirmationsRateLimiter: null);
+
+        var channel = await connection.CreateChannelAsync(channelOptions, cancellationToken);
 
         return new RabbitMqChannel(connection, channel);
     }

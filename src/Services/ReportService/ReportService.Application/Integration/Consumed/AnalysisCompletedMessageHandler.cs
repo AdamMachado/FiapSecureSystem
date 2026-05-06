@@ -1,4 +1,5 @@
 ﻿using ReportService.Application.Abstractions.Messaging;
+using ReportService.Application.Exceptions;
 using ReportService.Application.UseCases.GenerateReport;
 using ReportService.Domain.Enums;
 using Shared.Contracts.IntegrationEvents;
@@ -25,6 +26,14 @@ public sealed class AnalysisCompletedMessageHandler
             integrationEvent.Result,
             ReportFormat.Markdown);
 
-        await _generateReportHandler.HandleAsync(command, cancellationToken);
+        var result = await _generateReportHandler.HandleAsync(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            throw new MessageHandlingException(
+                $"Failed to process {nameof(AnalysisFailedIntegrationEvent)} for analysis '{integrationEvent.AnalysisRequestId}'. " +
+                $"Error: {result.Error.Code} - {result.Error.Message}",
+                result.Error.Code);
+        }
     }
 }

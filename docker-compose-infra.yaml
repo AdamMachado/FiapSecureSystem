@@ -1,0 +1,217 @@
+name: fiap-secure-systems
+
+services:
+  postgres:
+    container_name: fiapsecure-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres && psql -U ${POSTGRES_USER} -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\" | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - soat-net
+
+  pgadmin:
+    container_name: fiapsecure-pgadmin
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - soat-net
+
+  uploadservice-db-migrator:
+    container_name: uploadservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/UploadService/UploadService.Infrastructure/Dockerfile.migrator
+    image: uploadservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
+    networks:
+      - soat-net
+
+  reportservice-db-migrator:
+    container_name: reportservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/ReportService/ReportService.Infrastructure/Dockerfile.migrator
+    image: reportservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${REPORT_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
+    networks:
+      - soat-net
+
+  processingservice-db-migrator:
+    container_name: processingservice-db-migrator
+    build:
+      context: .
+      dockerfile: src/Services/ProcessingService/ProcessingService.Infrastructure/Dockerfile.migrator
+    image: processingservice-db-migrator:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+    restart: "no"
+    networks:
+      - soat-net
+
+  rabbitmq:
+    container_name: fiapsecure-rabbitmq
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_ERLANG_COOKIE: "fiapsecure-static-cookie"
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 15672"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 70s
+    networks:
+      - soat-net
+
+  rabbitmq-init:
+    container_name: fiapsecure-rabbitmq-init
+    image: curlimages/curl:8.8.0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_MANAGEMENT_PORT: 15672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+    volumes:
+      - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
+    entrypoint: ["/bin/sh", "/init-rabbitmq.sh"]
+    restart: "no"
+    networks:
+      - soat-net
+
+  minio:
+    container_name: fiapsecure-minio
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - soat-net
+
+  minio-init:
+    container_name: fiapsecure-minio-init
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+      /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET_NAME} &&
+      /usr/bin/mc anonymous set private local/${MINIO_BUCKET_NAME} &&
+      /usr/bin/mc mb --ignore-existing local/${MINIO_REPORT_BUCKET_NAME} &&
+      /usr/bin/mc anonymous set private local/${MINIO_REPORT_BUCKET_NAME} &&
+      exit 0
+      "
+    restart: "no"
+    networks:
+      - soat-net
+
+  aspire-dashboard:
+    container_name: fiapsecure-aspire-dashboard
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    restart: unless-stopped
+    ports:
+      - "${ASPIRE_DASHBOARD_PORT}:18888"
+      - "${ASPIRE_OTLP_GRPC_PORT}:18889"
+    networks:
+      - soat-net
+
+  otel-collector:
+    container_name: fiapsecure-otel-collector
+    image: otel/opentelemetry-collector:0.101.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+    volumes:
+      - ./deploy/otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT}:4317"
+      - "${OTEL_HTTP_PORT}:4318"
+    networks:
+      - soat-net
+
+networks:
+  soat-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
+  pgadmin_data:

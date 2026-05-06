@@ -14,6 +14,7 @@ using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.IntegrationEvents.Schemas;
 using Xunit;
+using System.Diagnostics;
 
 namespace ReportService.Application.Tests.Integration.Consumed;
 
@@ -29,8 +30,9 @@ public sealed class AnalysisCompletedMessageHandlerTests
         var storage = new Mock<IReportStorage>();
         var publisher = new Mock<IEventPublisher>();
         var mapper = new Mock<IIntegrationEventMapper<ReportGeneratedDomainEvent>>();
+        var activitySource = new ActivitySource("ReportService.Application.Tests");
 
-        var now = new DateTime(2026, 4, 22, 12, 0, 0, DateTimeKind.Utc);
+    var now = new DateTime(2026, 4, 22, 12, 0, 0, DateTimeKind.Utc);
         dateTimeProvider.Setup(x => x.UtcNow).Returns(now);
 
         repository
@@ -64,7 +66,8 @@ public sealed class AnalysisCompletedMessageHandlerTests
             renderer.Object,
             storage.Object,
             publisher.Object,
-            mapper.Object);
+            mapper.Object,
+            activitySource);
 
         var handler = new AnalysisCompletedMessageHandler(generateReportHandler);
 
@@ -87,8 +90,7 @@ public sealed class AnalysisCompletedMessageHandlerTests
                     0,
                     0,
                     false,
-                    Array.Empty<string>())),
-            "summary");
+                    Array.Empty<string>())));
 
         await handler.HandleAsync(integrationEvent, CancellationToken.None);
 

@@ -15,6 +15,7 @@ using ProcessingService.Infrastructure.AI.Inspection;
 using ProcessingService.Infrastructure.AI.OpenAI;
 using ProcessingService.Infrastructure.AI.Options;
 using ProcessingService.Infrastructure.AI.Policies;
+using ProcessingService.Infrastructure.AI.StubAnalysis;
 using ProcessingService.Infrastructure.AI.Validation;
 using ProcessingService.Infrastructure.Clock;
 using ProcessingService.Infrastructure.Configuration.Options;
@@ -27,6 +28,7 @@ using ProcessingService.Infrastructure.Persistence.UnitOfWork;
 using ProcessingService.Infrastructure.Storage.MinIO;
 using RabbitMQ.Client;
 using Shared.Observability.Correlation;
+using Shared.Observability.Telemetry;
 
 namespace ProcessingService.Infrastructure.Configuration;
 
@@ -36,6 +38,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton(_ => ActivitySources.Create(ActivitySources.ProcessingService));
+
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
@@ -86,7 +90,11 @@ public static class DependencyInjection
                 UserName = options.Username,
                 Password = options.Password,
                 ClientProvidedName = options.ClientProvidedName,
-                Ssl = { Enabled = options.UseSsl }
+                Ssl =
+                {
+                    Enabled = options.UseSsl,
+                    ServerName = options.Host
+                }
             };
         });
 
@@ -120,7 +128,19 @@ public static class DependencyInjection
         services.AddScoped<AiUsageLogger>();
         services.AddScoped<IAnalysisFileInspector, ImageAnalysisFileInspector>();
         services.AddScoped<IAnalysisFileInspector, PdfAnalysisFileInspector>();
-        services.AddScoped<IArchitectureAnalyzer, OpenAiArchitectureAnalyzer>();
+
+        services.Configure<AiPipelineOptions>(
+        configuration.GetSection(AiPipelineOptions.SectionName));
+
+        var aiPipelineOptions = configuration
+            .GetSection(AiPipelineOptions.SectionName)
+            .Get<AiPipelineOptions>() ?? new AiPipelineOptions();
+
+        // Conditional registration of the architecture analyzer based on configuration
+        if (aiPipelineOptions.UseStubAnalyzer)
+            services.AddScoped<IArchitectureAnalyzer, StubArchitectureAnalyzer>();
+        else
+            services.AddScoped<IArchitectureAnalyzer, OpenAiArchitectureAnalyzer>();
 
         var database = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
 

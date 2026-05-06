@@ -9,6 +9,7 @@ using ProcessingService.Infrastructure.AI.Diagnostics;
 using ProcessingService.Infrastructure.AI.Exceptions;
 using ProcessingService.Infrastructure.AI.Guardrails;
 using ProcessingService.Infrastructure.AI.Inspection;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using ProcessingService.Infrastructure.AI.Options;
 using ProcessingService.Infrastructure.AI.Policies;
 using ProcessingService.Infrastructure.AI.Validation;
@@ -23,10 +24,13 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters =
+            {
+                new JsonStringEnumConverter()
+            }
         };
 
-        options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
 
@@ -80,18 +84,50 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
         ArchitectureAnalysisRequest request,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "Starting architecture analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}, ContentType={ContentType}",
+            request.AnalysisRequestId,
+            request.DiagramType,
+            request.ContentType);
+
         if (!CanHandle(request.DiagramType))
+        {
+            _logger.LogError(
+                "Unsupported diagram type for analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+                request.AnalysisRequestId,
+                request.DiagramType);
+
             throw new UnsupportedDiagramFormatException(request.ContentType);
+        }
 
         var content = await ReadContentAsync(request.Content, cancellationToken);
         _inputValidator.ValidateAndThrow(request, content);
 
+        _logger.LogInformation(
+            "Content read successfully for analysis. AnalysisRequestId={AnalysisRequestId}, ContentSize={ContentSize} bytes",
+            request.AnalysisRequestId,
+            content.Length);
+
         var inspector = _inspectors.FirstOrDefault(x => x.CanInspect(request.DiagramType));
+        
         if (inspector is null)
+        {
+            _logger.LogError(
+                "No suitable inspector found for diagram type. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+                request.AnalysisRequestId,
+                request.DiagramType);
+
             throw new UnsupportedDiagramFormatException(request.ContentType);
+        }
 
         var inspection = await inspector.InspectAsync(request, content, cancellationToken);
         _costPolicy.ValidateAndThrow(inspection);
+
+        _logger.LogInformation(
+            "Inspection completed for analysis. AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}, InspectionDetails={InspectionDetails}",
+            request.AnalysisRequestId,
+            request.DiagramType,
+            inspection);
 
         var developerInstructions = _promptBuilder.BuildDeveloperInstructions();
         var userInstructions = _promptBuilder.BuildUserInstructions(request, inspection);
@@ -174,7 +210,10 @@ public sealed class OpenAiArchitectureAnalyzer : IArchitectureAnalyzer
         }
         catch (JsonException ex)
         {
-            throw new AiResponseValidationException($"The AI response is not valid JSON for the expected schema. Details: {ex.Message}");
+            throw new AiResponseValidationException(
+                $"The AI response is not valid JSON for the expected schema." +
+                $"\nDetails: {ex.Message}" +
+                $"\nOutput Response: {outputText}");
         }
     }
 

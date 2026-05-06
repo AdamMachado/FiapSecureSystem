@@ -10,6 +10,8 @@
   <Folder Name="/infra/" />
   <Folder Name="/Solution Items/">
     <File Path=".env" />
+    <File Path="docker-compose-infra.yaml" />
+    <File Path="docker-compose.rabbitmq.yaml" />
     <File Path="docker-compose.yaml" />
   </Folder>
   <Folder Name="/src/" />
@@ -33,7 +35,7 @@
     <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Web/">
-    <Project Path="FIAPSecureAnalyzer.Site/FIAPSecureSystem.Site.csproj" Id="1fc7247e-1d3e-4abe-b5b7-f2d8080e4e73" />
+    <Project Path="src/Web/FIAPSecureAnalyzer.Site/FIAPSecureSystem.Site.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/Shared.Contracts/Shared.Contracts.csproj" />
@@ -41,8 +43,8 @@
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="ProcessingService.Application/ProcessingService.Application.Tests.csproj" Id="fc0e9133-a0e2-400c-97c8-c6ecfa130a49" />
+    <Project Path="tests/ProcessingService.Application.Tests/ProcessingService.Application.Tests.csproj" />
     <Project Path="tests/ReportService.Application.Tests/ReportService.Application.Tests.csproj" />
-    <Project Path="UploadService.Application.Tests/UploadService.Application.Tests.csproj" Id="a9a81c35-317e-4537-9ec6-b62e129c9895" />
+    <Project Path="tests/UploadService.Application.Tests/UploadService.Application.Tests.csproj" />
   </Folder>
 </Solution>

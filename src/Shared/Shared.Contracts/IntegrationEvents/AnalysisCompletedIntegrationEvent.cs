@@ -11,8 +11,7 @@ public sealed class AnalysisCompletedIntegrationEvent : IntegrationEventBase
         Guid analysisRequestId,
         Guid requestedByUserId,
         DateTime completedAtUtc,
-        AnalysisResultDto result,
-        string summary)
+        AnalysisResultDto result)
         : base(correlationId, causationId)
     {
         AnalysisRequestId = analysisRequestId;

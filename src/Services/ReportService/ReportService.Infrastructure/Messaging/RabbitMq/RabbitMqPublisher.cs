@@ -1,59 +1,109 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using ReportService.Application.Abstractions.Messaging;
+using ReportService.Application.Exceptions;
+using ReportService.Infrastructure.Messaging.RabbitMq.Internals;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using Shared.Contracts.Messaging;
 using Shared.Observability.Messaging;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using ReportService.Application.Abstractions.Messaging;
-using ReportService.Infrastructure.Exceptions;
-using ReportService.Infrastructure.Messaging.RabbitMq.Internals;
+using System.Text.Json.Serialization;
 
 namespace ReportService.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqPublisher : IEventPublisher
 {
-    private readonly RabbitMqChannel _rabbitMqChannel;
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonSerializerOptions();
 
-    public RabbitMqPublisher(RabbitMqChannel rabbitMqChannel)
+    private readonly RabbitMqChannel _rabbitMqChannel;
+    private readonly ILogger<RabbitMqPublisher> _logger;
+    private readonly ActivitySource _activitySource;
+
+    public RabbitMqPublisher(
+        RabbitMqChannel rabbitMqChannel,
+        ILogger<RabbitMqPublisher> logger,
+        ActivitySource activitySource)
     {
         _rabbitMqChannel = rabbitMqChannel;
+        _logger = logger;
+        _activitySource = activitySource;
+
+        _rabbitMqChannel.Channel.BasicReturnAsync += OnBasicReturnAsync;
     }
 
     public async Task PublishAsync(
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
+        var channel = _rabbitMqChannel.Channel;
+        var exchange = ResolveExchange(integrationEvent);
+        var routingKey = ResolveRoutingKey(integrationEvent);
+
+        using var activity = _activitySource.StartActivity(
+            $"RabbitMQ publish {routingKey}",
+            ActivityKind.Producer
+        );
+
+        activity?.SetTag("messaging.system", "rabbitmq");
+        activity?.SetTag("messaging.destination.name", exchange);
+        activity?.SetTag("messaging.rabbitmq.routing_key", routingKey);
+        activity?.SetTag("messaging.operation", "publish");
+        activity?.SetTag("messaging.message.id", integrationEvent.EventId.ToString("N"));
+        activity?.SetTag("messaging.message.type", integrationEvent.EventType);
+        activity?.SetTag("correlation.id", integrationEvent.CorrelationId.ToString("N"));
+
+        if (integrationEvent.CausationId != null)
+            activity?.SetTag("causation.id", integrationEvent.CausationId.Value.ToString("N"));
         try
         {
-            var channel = _rabbitMqChannel.Channel;
-
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
                 integrationEvent,
-                integrationEvent.GetType()));
+                integrationEvent.GetType(),
+                JsonOptions));
 
             BasicProperties properties = new()
             {
                 Persistent = true,
-                ContentType = "application/json"
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent
             };
 
             properties.ApplyIntegrationEventHeaders(
                 integrationEvent,
                 source: "ReportService");
 
+            properties.InjectTraceContext(activity);
+
             await channel.BasicPublishAsync(
-                exchange: ResolveExchange(integrationEvent),
-                routingKey: ResolveRoutingKey(integrationEvent),
-                mandatory: false,
+                exchange: exchange,
+                routingKey: routingKey,
+                mandatory: true,
                 basicProperties: properties,
                 body: body,
                 cancellationToken: cancellationToken);
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
         {
-            throw new MessagePublishException("Failed to publish RabbitMQ message.", ex);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
+            throw new MessagePublishException(
+                $"Failed to publish integration event '{integrationEvent.EventType}' " +
+                $"to exchange '{exchange}' with routing key '{routingKey}'.",
+                ex);
         }
+    }
+
+    private static JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 
     private static string ResolveExchange(IntegrationEventBase integrationEvent)
@@ -61,7 +111,6 @@ public sealed class RabbitMqPublisher : IEventPublisher
         return integrationEvent switch
         {
             ReportGeneratedIntegrationEvent => ExchangeNames.Report,
-            AnalysisCompletedIntegrationEvent => ExchangeNames.Analysis,
             _ => throw new InvalidOperationException(
                 $"No exchange mapped for event type '{integrationEvent.GetType().Name}'.")
         };
@@ -72,9 +121,20 @@ public sealed class RabbitMqPublisher : IEventPublisher
         return integrationEvent switch
         {
             ReportGeneratedIntegrationEvent => RoutingKeys.ReportGenerated,
-            AnalysisCompletedIntegrationEvent => RoutingKeys.AnalysisCompleted,
             _ => throw new InvalidOperationException(
                 $"No routing key mapped for event type '{integrationEvent.GetType().Name}'.")
         };
+    }
+
+    private Task OnBasicReturnAsync(object sender, BasicReturnEventArgs args)
+    {
+        _logger.LogError(
+            "RabbitMQ returned an unroutable message. Exchange: {Exchange}, RoutingKey: {RoutingKey}, ReplyCode: {ReplyCode}, ReplyText: {ReplyText}",
+            args.Exchange,
+            args.RoutingKey,
+            args.ReplyCode,
+            args.ReplyText);
+
+        return Task.CompletedTask;
     }
 }

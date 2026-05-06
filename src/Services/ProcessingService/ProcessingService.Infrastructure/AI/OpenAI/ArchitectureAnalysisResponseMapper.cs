@@ -1,5 +1,7 @@
 using ProcessingService.Application.Abstractions.AI;
+using ProcessingService.Infrastructure.AI.OpenAI.Models;
 using Shared.Contracts.IntegrationEvents.Schemas;
+using System.ComponentModel;
 
 namespace ProcessingService.Infrastructure.AI.OpenAI;
 
@@ -8,14 +10,21 @@ public sealed class ArchitectureAnalysisResponseMapper
     internal ArchitectureAnalysisResult Map(ArchitectureAnalysisResponse response)
     {
         var components = response.Components
-            .Select(static component => new IdentifiedComponentDto(
-                component.Id,
-                component.Name,
-                component.Type,
-                component.Description,
-                component.Tags,
-                component.ConnectedTo,
-                component.Metadata))
+            .Select(static component =>
+            {
+                var metadata = component.Metadata == null || component.Metadata.Count == 0
+                    ? null
+                    : component.Metadata.ToDictionary(x => x.Key, x => x.Value);
+
+                return new IdentifiedComponentDto(
+                    component.Id,
+                    component.Name,
+                    component.Type,
+                    component.Description,
+                    component.Tags,
+                    component.ConnectedTo,
+                    metadata);
+            })
             .ToArray();
 
         var risks = response.Risks

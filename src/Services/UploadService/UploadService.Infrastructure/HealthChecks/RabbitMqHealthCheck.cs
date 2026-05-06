@@ -28,6 +28,11 @@ public sealed class RabbitMqHealthCheck : IHealthCheck
                 UserName = _options.Username,
                 Password = _options.Password,
                 ClientProvidedName = $"{_options.ClientProvidedName}.healthcheck",
+                Ssl =
+                {
+                    Enabled = _options.UseSsl,
+                    ServerName = _options.Host
+                }
             };
 
             using var connection = await factory.CreateConnectionAsync(cancellationToken);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -14,6 +15,10 @@ public static class OpenTelemetryExtensions
         string serviceName,
         params string[] activitySourceNames)
     {
+        var configuredServiceName =
+            configuration[TelemetryConstants.ServiceNameConfigKey] ??
+            serviceName;
+
         var serviceVersion =
             configuration[TelemetryConstants.ServiceVersionConfigKey] ??
             TelemetryConstants.DefaultServiceVersion;
@@ -21,12 +26,13 @@ public static class OpenTelemetryExtensions
         var otlpEndpoint = configuration[TelemetryConstants.OtlpEndpointConfigKey];
 
         services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(serviceName: serviceName, serviceVersion: serviceVersion))
+            .ConfigureResource(resource => resource.AddService(serviceName: configuredServiceName, serviceVersion: serviceVersion))
             .WithTracing(tracing =>
             {
                 tracing
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddNpgsql();
 
                 foreach (var activitySourceName in activitySourceNames.Distinct())
                 {
