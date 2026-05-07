@@ -1,10 +1,39 @@
-﻿using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Shared.Contracts.IntegrationEvents.Schemas;
 
 namespace ReportService.Application.Mappings;
 
 public static class AnalysisReportMappings
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
+    };
+
+    public static string ToAnalysisJson(AnalysisResultDto result)
+        => JsonSerializer.Serialize(result, JsonOptions);
+
+    public static AnalysisResultDto FromAnalysisJson(string analysisJson)
+    {
+        var result = JsonSerializer.Deserialize<AnalysisResultDto>(analysisJson, JsonOptions);
+
+        if (result is null)
+            throw new InvalidOperationException("Analysis report data could not be deserialized.");
+
+        return result;
+    }
+
+    public static JsonElement ToJsonElement(string analysisJson)
+    {
+        using var document = JsonDocument.Parse(analysisJson);
+        return document.RootElement.Clone();
+    }
+
     public static string ToMarkdownDocument(
         Guid analysisRequestId,
         Guid requestedByUserId,
@@ -68,6 +97,7 @@ public static class AnalysisReportMappings
                 if (component.Metadata is { Count: > 0 })
                 {
                     sb.AppendLine("- Metadata:");
+
                     foreach (var pair in component.Metadata)
                     {
                         sb.AppendLine($"  - {pair.Key}: {pair.Value}");
@@ -103,6 +133,7 @@ public static class AnalysisReportMappings
                 if (risk.Evidence.Count > 0)
                 {
                     sb.AppendLine("- Evidence:");
+
                     foreach (var evidence in risk.Evidence)
                     {
                         sb.AppendLine($"  - {evidence}");
@@ -137,6 +168,7 @@ public static class AnalysisReportMappings
                 if (recommendation.ExpectedBenefits.Count > 0)
                 {
                     sb.AppendLine("- Expected Benefits:");
+
                     foreach (var benefit in recommendation.ExpectedBenefits)
                     {
                         sb.AppendLine($"  - {benefit}");

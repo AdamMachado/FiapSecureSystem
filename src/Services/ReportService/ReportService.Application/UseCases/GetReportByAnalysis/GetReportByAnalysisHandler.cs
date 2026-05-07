@@ -1,4 +1,5 @@
-﻿using ReportService.Application.Abstractions.Persistence;
+using ReportService.Application.Abstractions.Persistence;
+using ReportService.Application.Mappings;
 using Shared.Kernel.Result;
 using System.Diagnostics;
 
@@ -49,16 +50,19 @@ public sealed class GetReportByAnalysisHandler
                 report.Id,
                 report.AnalysisRequestId,
                 report.RequestedByUserId,
-                report.Status,
-                report.Format,
-                report.FileName,
-                report.ContentType,
-                report.GeneratedFileLocation.BucketName,
-                report.GeneratedFileLocation.ObjectKey,
+                AnalysisReportMappings.ToJsonElement(report.AnalysisData),
+                report.Files
+                    .OrderBy(x => x.Format)
+                    .Select(x => new GetReportByAnalysisFileResult(
+                        x.Format,
+                        x.FileName,
+                        x.ContentType,
+                        x.BucketName,
+                        x.ObjectKey,
+                        x.CreatedAtUtc))
+                    .ToArray(),
                 report.CreatedAtUtc,
-                report.UpdatedAtUtc,
-                report.GeneratedAtUtc,
-                report.FailureReason));
+                report.UpdatedAtUtc));
         }
         catch (Exception ex)
         {

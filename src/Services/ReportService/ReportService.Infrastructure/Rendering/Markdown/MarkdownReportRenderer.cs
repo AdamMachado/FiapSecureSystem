@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using ReportService.Application.Abstractions.Rendering;
 using ReportService.Domain.Enums;
 using ReportService.Infrastructure.Exceptions;
@@ -16,18 +16,8 @@ public sealed class MarkdownReportRenderer : IReportRenderer
     {
         try
         {
-            var markdown = new StringBuilder();
 
-            markdown.AppendLine("# Technical Analysis Report");
-            markdown.AppendLine();
-            markdown.AppendLine($"**AnalysisRequestId:** `{request.AnalysisRequestId}`");
-            markdown.AppendLine($"**RequestedByUserId:** `{request.RequestedByUserId}`");
-            markdown.AppendLine();
-            markdown.AppendLine("## Content");
-            markdown.AppendLine();
-            markdown.AppendLine(request.Content);
-
-            var contentBytes = Encoding.UTF8.GetBytes(markdown.ToString());
+            var contentBytes = Encoding.UTF8.GetBytes(request.Content);
 
             var fileName = $"{request.FileNameWithoutExtension}.md";
 

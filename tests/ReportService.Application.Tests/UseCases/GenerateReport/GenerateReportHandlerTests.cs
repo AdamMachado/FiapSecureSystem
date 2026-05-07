@@ -1,16 +1,11 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using ReportService.Application.Abstractions.Clock;
-using ReportService.Application.Abstractions.Messaging;
 using ReportService.Application.Abstractions.Persistence;
-using ReportService.Application.Abstractions.Rendering;
-using ReportService.Application.Abstractions.Storage;
+using ReportService.Application.Mappings;
+using ReportService.Application.Tests.TestData;
 using ReportService.Application.UseCases.GenerateReport;
 using ReportService.Domain.Entities;
-using ReportService.Domain.Enums;
-using ReportService.Domain.Events;
-using Shared.Contracts.IntegrationEvents.Abstractions;
-using Shared.Contracts.IntegrationEvents.Schemas;
 using System.Diagnostics;
 using Xunit;
 
@@ -20,11 +15,7 @@ public sealed class GenerateReportHandlerTests
 {
     private readonly Mock<IAnalysisReportRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
-    private readonly Mock<IReportStorage> _storage = new();
-    private readonly Mock<IReportRenderer> _renderer = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
-    private readonly Mock<IEventPublisher> _eventPublisher = new();
-    private readonly Mock<IIntegrationEventMapper<ReportGeneratedDomainEvent>> _generatedEventMapper = new();
     private readonly ActivitySource _activitySource = new("ReportService.Application.Tests");
 
     private GenerateReportHandler CreateHandler()
@@ -34,121 +25,72 @@ public sealed class GenerateReportHandlerTests
             _repository.Object,
             _unitOfWork.Object,
             _dateTimeProvider.Object,
-            _renderer.Object,
-            _storage.Object,
-            _eventPublisher.Object,
-            _generatedEventMapper.Object,
             _activitySource);
     }
 
     [Fact]
-    public async Task HandleAsync_Should_Generate_Report_When_Command_Is_Valid()
+    public async Task HandleAsync_Should_Create_Base_Report_When_Command_Is_Valid()
     {
         var now = new DateTime(2026, 4, 22, 12, 0, 0, DateTimeKind.Utc);
-        _dateTimeProvider.Setup(x => x.UtcNow).Returns(now);
-
-        _repository
-            .Setup(x => x.GetByAnalysisRequestIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AnalysisReport?)null);
-
-        _renderer
-            .Setup(x => x.RenderAsync(It.IsAny<RenderReportRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RenderedReport(
-                "analysis-report.pdf",
-                "application/pdf",
-                new byte[] { 1, 2, 3 }));
-
-        _storage
-            .Setup(x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new StoredReportDescriptor(
-                "analysis-reports",
-                "reports/analysis-report.pdf",
-                "analysis-report.pdf",
-                "application/pdf"));
-
-        _generatedEventMapper
-            .Setup(x => x.Map(It.IsAny<ReportGeneratedDomainEvent>()))
-            .Returns(new FakeIntegrationEvent());
-
-        var handler = CreateHandler();
-
         var command = new GenerateReportCommand(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            new AnalysisResultDto(
-                Array.Empty<IdentifiedComponentDto>(),
-                Array.Empty<ArchitecturalRiskDto>(),
-                Array.Empty<ArchitecturalRecommendationDto>(),
-                new AnalysisSummaryDto(
-                    "Teste",
-                    0,
-                    0,
-                    0,
-                    false,
-                    Array.Empty<string>())),
-            ReportFormat.Pdf);
+            AnalysisResultFactory.Create());
+
+        _dateTimeProvider.Setup(x => x.UtcNow).Returns(now);
+
+        _repository
+            .Setup(x => x.GetByAnalysisRequestIdAsync(command.AnalysisRequestId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AnalysisReport?)null);
+
+        var handler = CreateHandler();
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
+        result.Value.AnalysisRequestId.Should().Be(command.AnalysisRequestId);
+        result.Value.RequestedByUserId.Should().Be(command.RequestedByUserId);
 
         _repository.Verify(
-            x => x.AddAsync(It.IsAny<AnalysisReport>(), It.IsAny<CancellationToken>()),
+            x => x.AddAsync(
+                It.Is<AnalysisReport>(report =>
+                    report.AnalysisRequestId == command.AnalysisRequestId &&
+                    report.RequestedByUserId == command.RequestedByUserId &&
+                    report.AnalysisData == AnalysisReportMappings.ToAnalysisJson(command.Result) &&
+                    report.Files.Count == 0),
+                It.IsAny<CancellationToken>()),
             Times.Once);
 
         _unitOfWork.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Once);
-
-        _storage.Verify(
-            x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        _eventPublisher.Verify(
-            x => x.PublishAsync(It.IsAny<IntegrationEventBase>(), It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 
     [Fact]
-    public async Task HandleAsync_Should_Fail_When_Report_Already_Exists()
+    public async Task HandleAsync_Should_Return_Existing_Report_When_Base_Report_Already_Exists()
     {
         var existingReport = AnalysisReport.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            ReportFormat.Pdf,
-            "conteudo",
-            "analysis-reports",
-            "reports/existing.pdf",
-            "existing.pdf",
-            "application/pdf",
+            AnalysisReportMappings.ToAnalysisJson(AnalysisResultFactory.Create()),
             DateTime.UtcNow);
 
         _repository
-            .Setup(x => x.GetByAnalysisRequestIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByAnalysisRequestIdAsync(existingReport.AnalysisRequestId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingReport);
 
         var handler = CreateHandler();
 
-        var command = new GenerateReportCommand(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            new AnalysisResultDto(
-                Array.Empty<IdentifiedComponentDto>(),
-                Array.Empty<ArchitecturalRiskDto>(),
-                Array.Empty<ArchitecturalRecommendationDto>(),
-                new AnalysisSummaryDto(
-                    "Teste",
-                    0,
-                    0,
-                    0,
-                    false,
-                    Array.Empty<string>())),
-            ReportFormat.Pdf);
+        var result = await handler.HandleAsync(
+            new GenerateReportCommand(
+                existingReport.AnalysisRequestId,
+                existingReport.RequestedByUserId,
+                AnalysisResultFactory.Create()),
+            CancellationToken.None);
 
-        var result = await handler.HandleAsync(command, CancellationToken.None);
-
-        result.IsFailure.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ReportId.Should().Be(existingReport.Id);
 
         _repository.Verify(
             x => x.AddAsync(It.IsAny<AnalysisReport>(), It.IsAny<CancellationToken>()),
@@ -157,66 +99,23 @@ public sealed class GenerateReportHandlerTests
         _unitOfWork.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Never);
-
-        _storage.Verify(
-            x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        _eventPublisher.Verify(
-            x => x.PublishAsync(It.IsAny<IntegrationEventBase>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
-    public async Task HandleAsync_Should_Fail_When_Renderer_Throws_Validation_Exception()
+    public async Task HandleAsync_Should_Fail_When_Command_Is_Invalid()
     {
-        _repository
-            .Setup(x => x.GetByAnalysisRequestIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AnalysisReport?)null);
-
-        _renderer
-            .Setup(x => x.RenderAsync(It.IsAny<RenderReportRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Shared.Kernel.Exceptions.ValidationException("invalid render request"));
-
         var handler = CreateHandler();
 
-        var command = new GenerateReportCommand(
+        var invalidCommand = new GenerateReportCommand(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            new AnalysisResultDto(
-                Array.Empty<IdentifiedComponentDto>(),
-                Array.Empty<ArchitecturalRiskDto>(),
-                Array.Empty<ArchitecturalRecommendationDto>(),
-                new AnalysisSummaryDto(
-                    "Teste",
-                    0,
-                    0,
-                    0,
-                    false,
-                    Array.Empty<string>())),
-            ReportFormat.Pdf);
+            AnalysisResultFactory.Create(string.Empty));
 
-        var result = await handler.HandleAsync(command, CancellationToken.None);
+        var result = await handler.HandleAsync(invalidCommand, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-
-        _storage.Verify(
-            x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()),
+        _repository.Verify(
+            x => x.AddAsync(It.IsAny<AnalysisReport>(), It.IsAny<CancellationToken>()),
             Times.Never);
-
-        _unitOfWork.Verify(
-            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        _eventPublisher.Verify(
-            x => x.PublishAsync(It.IsAny<IntegrationEventBase>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    private sealed class FakeIntegrationEvent : IntegrationEventBase
-    {
-        public FakeIntegrationEvent() : base(Guid.NewGuid(), null)
-        {
-        }
     }
 }

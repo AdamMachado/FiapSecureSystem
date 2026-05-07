@@ -4,6 +4,8 @@ namespace ReportService.Application.Abstractions.Rendering;
 
 public interface IReportRenderer
 {
+    bool CanRender(ReportFormat format);
+
     Task<RenderedReport> RenderAsync(
         RenderReportRequest request,
         CancellationToken cancellationToken = default);

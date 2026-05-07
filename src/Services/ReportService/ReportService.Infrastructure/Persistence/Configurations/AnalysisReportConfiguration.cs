@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ReportService.Domain.Entities;
 
@@ -21,32 +21,10 @@ public sealed class AnalysisReportConfiguration : IEntityTypeConfiguration<Analy
         builder.Property(x => x.RequestedByUserId)
             .IsRequired();
 
-        builder.Property(x => x.Format)
-            .HasConversion<int>()
+        builder.Property(x => x.AnalysisData)
+            .HasColumnName("analysis_data")
+            .HasColumnType("jsonb")
             .IsRequired();
-
-        builder.Property(x => x.Status)
-            .HasConversion<int>()
-            .IsRequired();
-
-        builder.Property(x => x.Content)
-            .HasColumnName("content")
-            .HasColumnType("text")
-            .IsRequired();
-
-        builder.Property(x => x.FileName)
-            .HasColumnName("file_name")
-            .HasMaxLength(255)
-            .IsRequired();
-
-        builder.Property(x => x.ContentType)
-            .HasColumnName("content_type")
-            .HasMaxLength(128)
-            .IsRequired();
-
-        builder.Property(x => x.FailureReason)
-            .HasColumnName("failure_reason")
-            .HasMaxLength(2000);
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
@@ -54,28 +32,20 @@ public sealed class AnalysisReportConfiguration : IEntityTypeConfiguration<Analy
         builder.Property(x => x.UpdatedAtUtc)
             .IsRequired();
 
-        builder.Property(x => x.GeneratedAtUtc);
-
-        builder.OwnsOne(x => x.GeneratedFileLocation, location =>
-        {
-            location.Property(x => x.BucketName)
-                .HasColumnName("storage_bucket")
-                .HasMaxLength(100)
-                .IsRequired();
-
-            location.Property(x => x.ObjectKey)
-                .HasColumnName("storage_object_key")
-                .HasMaxLength(512)
-                .IsRequired();
-        });
-
         builder.Ignore(x => x.DomainEvents);
+
+        builder.HasMany(x => x.Files)
+            .WithOne()
+            .HasForeignKey(x => x.AnalysisReportId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(x => x.Files)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(x => x.AnalysisRequestId)
             .IsUnique();
 
         builder.HasIndex(x => x.RequestedByUserId);
-        builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.CreatedAtUtc);
     }
 }

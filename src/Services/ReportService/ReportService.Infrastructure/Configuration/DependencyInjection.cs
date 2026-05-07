@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -20,7 +20,6 @@ using ReportService.Infrastructure.Messaging.RabbitMq.Internals;
 using ReportService.Infrastructure.Persistence.Context;
 using ReportService.Infrastructure.Persistence.Repositories;
 using ReportService.Infrastructure.Persistence.UnitOfWork;
-using ReportService.Infrastructure.Rendering.Json;
 using ReportService.Infrastructure.Rendering.Markdown;
 using ReportService.Infrastructure.Rendering.Pdf;
 using ReportService.Infrastructure.Storage.MinIO;
@@ -77,7 +76,6 @@ public static class DependencyInjection
 
         services.AddScoped<IReportStorage, MinIoReportStorage>();
 
-        services.AddScoped<IReportRenderer, JsonReportRenderer>();
         services.AddScoped<IReportRenderer, MarkdownReportRenderer>();
         services.AddScoped<IReportRenderer, PdfReportRenderer>();
 

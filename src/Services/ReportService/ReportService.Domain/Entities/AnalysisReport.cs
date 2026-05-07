@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ReportService.Domain.Enums;
 using ReportService.Domain.Events;
 using Shared.Kernel.Exceptions;
@@ -7,6 +8,8 @@ namespace ReportService.Domain.Entities;
 
 public sealed class AnalysisReport : AggregateRoot<Guid>
 {
+    private readonly List<AnalysisReportFile> _files = [];
+
     private AnalysisReport()
     {
     }
@@ -15,12 +18,7 @@ public sealed class AnalysisReport : AggregateRoot<Guid>
         Guid id,
         Guid analysisRequestId,
         Guid requestedByUserId,
-        ReportFormat format,
-        string content,
-        string bucketName,
-        string objectKey,
-        string fileName,
-        string contentType,
+        string analysisData,
         DateTime createdAtUtc)
         : base(id)
     {
@@ -30,109 +28,82 @@ public sealed class AnalysisReport : AggregateRoot<Guid>
         if (requestedByUserId == Guid.Empty)
             throw new ArgumentException("RequestedByUserId cannot be empty.", nameof(requestedByUserId));
 
-        if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Report content cannot be empty.", nameof(content));
+        if (string.IsNullOrWhiteSpace(analysisData))
+            throw new ArgumentException("Analysis data cannot be empty.", nameof(analysisData));
 
-        if (string.IsNullOrWhiteSpace(bucketName))
-            throw new ArgumentException("Bucket name cannot be empty.", nameof(bucketName));
-
-        if (string.IsNullOrWhiteSpace(objectKey))
-            throw new ArgumentException("Object key cannot be empty.", nameof(objectKey));
-
-        if (string.IsNullOrWhiteSpace(fileName))
-            throw new ArgumentException("File name cannot be empty.", nameof(fileName));
-
-        if (string.IsNullOrWhiteSpace(contentType))
-            throw new ArgumentException("Content type cannot be empty.", nameof(contentType));
+        EnsureValidJson(analysisData);
 
         AnalysisRequestId = analysisRequestId;
         RequestedByUserId = requestedByUserId;
-        Format = format;
-        Status = ReportStatus.Generated;
-        Content = content;
-        GeneratedFileLocation = new GeneratedFileLocation(bucketName, objectKey);
-        FileName = fileName;
-        ContentType = contentType;
+        AnalysisData = analysisData.Trim();
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
-        GeneratedAtUtc = createdAtUtc;
     }
 
     public Guid AnalysisRequestId { get; private set; }
     public Guid RequestedByUserId { get; private set; }
-    public ReportFormat Format { get; private set; }
-    public ReportStatus Status { get; private set; }
-    public string Content { get; private set; } = default!;
-    public GeneratedFileLocation GeneratedFileLocation { get; private set; } = default!;
-    public string FileName { get; private set; } = default!;
-    public string ContentType { get; private set; } = default!;
-    public string? FailureReason { get; private set; }
+    public string AnalysisData { get; private set; } = default!;
+    public IReadOnlyCollection<AnalysisReportFile> Files => _files.AsReadOnly();
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
-    public DateTime? GeneratedAtUtc { get; private set; }
 
     public static AnalysisReport Create(
         Guid id,
         Guid analysisRequestId,
         Guid requestedByUserId,
+        string analysisData,
+        DateTime createdAtUtc)
+    {
+        return new AnalysisReport(
+            id,
+            analysisRequestId,
+            requestedByUserId,
+            analysisData,
+            createdAtUtc);
+    }
+
+    public AnalysisReportFile? GetFile(ReportFormat format)
+        => _files.FirstOrDefault(x => x.Format == format);
+
+    public AnalysisReportFile AddFile(
+        Guid fileId,
         ReportFormat format,
-        string content,
         string bucketName,
         string objectKey,
         string fileName,
         string contentType,
         DateTime createdAtUtc)
     {
-        var report = new AnalysisReport(
-            id,
-            analysisRequestId,
-            requestedByUserId,
+        if (GetFile(format) is not null)
+            throw new DomainException($"A report file for format '{format}' already exists.");
+
+        var file = AnalysisReportFile.Create(
+            fileId,
+            Id,
             format,
-            content,
             bucketName,
             objectKey,
-            fileName,
             contentType,
+            fileName,
             createdAtUtc);
 
-        report.RaiseDomainEvent(new ReportGeneratedDomainEvent(
-            report.Id,
-            report.AnalysisRequestId,
-            report.RequestedByUserId,
-            report.GeneratedFileLocation.BucketName,
-            report.GeneratedFileLocation.ObjectKey,
-            report.FileName,
-            report.GeneratedAtUtc!.Value));
+        _files.Add(file);
+        UpdatedAtUtc = createdAtUtc;
 
-        return report;
+        RaiseDomainEvent(new ReportGeneratedDomainEvent(
+            Id,
+            AnalysisRequestId,
+            RequestedByUserId,
+            file.BucketName,
+            file.ObjectKey,
+            file.FileName,
+            file.CreatedAtUtc));
+
+        return file;
     }
 
-    public void MarkAsGenerated(DateTime updatedAtUtc)
+    private static void EnsureValidJson(string analysisData)
     {
-        if (Status == ReportStatus.Generated)
-            return;
-
-        if (Status == ReportStatus.Failed)
-            throw new DomainException("Cannot transition a failed report to generated.");
-
-        Status = ReportStatus.Generated;
-        UpdatedAtUtc = updatedAtUtc;
-        GeneratedAtUtc = updatedAtUtc;
-        FailureReason = null;
-    }
-
-    public void MarkAsFailed(string reason, DateTime updatedAtUtc)
-    {
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("Failure reason cannot be empty.", nameof(reason));
-
-        if (Status == ReportStatus.Generated)
-            throw new DomainException("Cannot fail a report that has already been generated.");
-
-        Status = ReportStatus.Failed;
-        UpdatedAtUtc = updatedAtUtc;
-        FailureReason = reason.Trim();
+        using var _ = JsonDocument.Parse(analysisData);
     }
 }
-
-public sealed record GeneratedFileLocation(string BucketName, string ObjectKey);

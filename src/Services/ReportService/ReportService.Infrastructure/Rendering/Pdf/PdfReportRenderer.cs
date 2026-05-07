@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using ReportService.Application.Abstractions.Rendering;
 using ReportService.Domain.Enums;
 using ReportService.Infrastructure.Exceptions;
@@ -16,15 +16,8 @@ public sealed class PdfReportRenderer : IReportRenderer
     {
         try
         {
-            // MVP simples: conteúdo textual em bytes
-            // depois você pode trocar por uma lib real de PDF
             var text = $"""
-                TECHNICAL ANALYSIS REPORT
 
-                AnalysisRequestId: {request.AnalysisRequestId}
-                RequestedByUserId: {request.RequestedByUserId}
-
-                Content:
                 {request.Content}
                 """;
 
