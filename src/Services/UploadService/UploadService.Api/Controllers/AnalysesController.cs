@@ -1,11 +1,15 @@
-using UploadService.Api.Configuration;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Kernel.Pagination;
+using System.Security.Cryptography;
+using UploadService.Api.Configuration;
 using UploadService.Api.Contracts.Requests;
 using UploadService.Api.Contracts.Responses;
+using UploadService.Application.UseCases.Common;
 using UploadService.Application.UseCases.CreateAnalysis;
+using UploadService.Application.UseCases.GetAnalysisAsset;
+using UploadService.Application.UseCases.GetAnalysisRequestsByIds;
 using UploadService.Application.UseCases.GetAnalysisStatus;
-using Serilog;
+using UploadService.Application.UseCases.ListUserAnalysisRequests;
 
 namespace UploadService.Api.Controllers;
 
@@ -73,6 +77,65 @@ public sealed class AnalysesController : ControllerBase
         return Results.Created($"/api/analyses/{result.Value.AnalysisRequestId}", response);
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IResult> ListAsync(
+        [FromQuery] PaginationParams paginationParams,
+        [FromServices] ListUserAnalysisRequestsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Received request to list analyses. PageNumber: {PageNumber}, PageSize: {PageSize}",
+            paginationParams.PageNumber,
+            paginationParams.PageSize);
+
+        var result = await handler.HandleAsync(
+            new ListUserAnalysisRequestsQuery(paginationParams),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return result.ToProblemHttpResult();
+
+        var response = PagedResult<AnalysisSummaryResponse>.Create(
+            result.Value.Items.Select(MapAnalysisSummaryResponse).ToArray(),
+            result.Value.TotalCount,
+            result.Value.PageNumber,
+            result.Value.PageSize);
+
+        return Results.Ok(response);
+    }
+
+    [HttpPost("by-ids")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IResult> ListByIdsAsync(
+        [FromBody] GetAnalysisRequestsByIdsRequest request,
+        [FromServices] GetAnalysisRequestsByIdsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var analysisRequestIds = request?.AnalysisRequestIds ?? Array.Empty<Guid>();
+
+        _logger.LogInformation(
+            "Received request to list analyses by ids. RequestedCount: {RequestedCount}",
+            analysisRequestIds.Count);
+
+        var result = await handler.HandleAsync(
+            new GetAnalysisRequestsByIdsQuery(analysisRequestIds),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return result.ToProblemHttpResult();
+
+        var response = result.Value
+            .Select(MapAnalysisSummaryResponse)
+            .ToArray();
+
+        return Results.Ok(response);
+    }
+
     [HttpGet("{analysisRequestId:guid}")]
     [ProducesResponseType(typeof(GetAnalysisStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -105,10 +168,47 @@ public sealed class AnalysesController : ControllerBase
         return Results.Ok(response);
     }
 
+    [HttpGet("{analysisRequestId:guid}/asset")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IResult> GetAssetAsync(
+        Guid analysisRequestId,
+        [FromServices] GetAnalysisAssetHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Received request to download analysis asset for AnalysisRequestId: {AnalysisRequestId}",
+            analysisRequestId);
+
+        var result = await handler.HandleAsync(
+            new GetAnalysisAssetQuery(analysisRequestId),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return result.ToProblemHttpResult();
+
+        return Results.File(result.Value.Content, result.Value.ContentType);
+    }
+
     private static async Task<string> ComputeSha256Async(Stream stream, CancellationToken cancellationToken)
     {
         using var sha256 = SHA256.Create();
         var hash = await sha256.ComputeHashAsync(stream, cancellationToken);
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
+
+    private static AnalysisSummaryResponse MapAnalysisSummaryResponse(AnalysisRequestSummaryResult summary)
+        => new(
+            summary.AnalysisRequestId,
+            summary.Status.ToString(),
+            summary.FileName,
+            summary.ContentType,
+            summary.SizeInBytes,
+            summary.CreatedAtUtc,
+            summary.UpdatedAtUtc,
+            summary.StartedAtUtc,
+            summary.CompletedAtUtc,
+            summary.FailedAtUtc,
+            summary.FailureReason);
 }

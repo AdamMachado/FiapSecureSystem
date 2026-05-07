@@ -1,9 +1,12 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using UploadService.Application.Abstractions.Messaging;
 using UploadService.Application.Integration.Consumed;
 using Shared.Contracts.IntegrationEvents;
 using UploadService.Application.UseCases.CreateAnalysis;
+using UploadService.Application.UseCases.GetAnalysisAsset;
+using UploadService.Application.UseCases.GetAnalysisRequestsByIds;
 using UploadService.Application.UseCases.GetAnalysisStatus;
+using UploadService.Application.UseCases.ListUserAnalysisRequests;
 using UploadService.Application.UseCases.UpdateAnalysisStatus;
 
 namespace UploadService.Application;
@@ -15,7 +18,10 @@ public static class DependencyInjection
         services.AddScoped<CreateAnalysisValidator>();
 
         services.AddScoped<CreateAnalysisHandler>();
+        services.AddScoped<GetAnalysisAssetHandler>();
+        services.AddScoped<GetAnalysisRequestsByIdsHandler>();
         services.AddScoped<GetAnalysisStatusHandler>();
+        services.AddScoped<ListUserAnalysisRequestsHandler>();
         services.AddScoped<UpdateAnalysisStatusHandler>();
 
         services.AddScoped<IIntegrationEventHandler<AnalysisCompletedIntegrationEvent>, AnalysisCompletedMessageHandler>();

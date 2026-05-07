@@ -1,0 +1,3 @@
+namespace UploadService.Application.UseCases.GetAnalysisRequestsByIds;
+
+public sealed record GetAnalysisRequestsByIdsQuery(IReadOnlyCollection<Guid> AnalysisRequestIds);
