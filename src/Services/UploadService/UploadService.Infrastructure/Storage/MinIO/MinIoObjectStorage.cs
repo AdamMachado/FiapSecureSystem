@@ -85,4 +85,63 @@ public sealed class MinIoObjectStorage : IObjectStorage
                 ex);
         }
     }
+
+    public async Task<StoredObjectContent> DownloadAsync(
+        DownloadObjectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.BucketName))
+            throw new StorageUnavailableException("Bucket name is required to download the analysis source file.");
+
+        if (string.IsNullOrWhiteSpace(request.ObjectKey))
+            throw new StorageUnavailableException("Object key is required to download the analysis source file.");
+
+        using var activity = _activitySource.StartActivity(
+            "MinIO download object",
+            ActivityKind.Client);
+
+        activity?.SetTag("storage.system", "minio");
+        activity?.SetTag("storage.bucket_name", request.BucketName);
+        activity?.SetTag("storage.object_key", request.ObjectKey);
+
+        try
+        {
+            var stat = await _minioClient.StatObjectAsync(
+                new StatObjectArgs()
+                    .WithBucket(request.BucketName)
+                    .WithObject(request.ObjectKey),
+                cancellationToken);
+
+            var memoryStream = new MemoryStream();
+
+            await _minioClient.GetObjectAsync(
+                new GetObjectArgs()
+                    .WithBucket(request.BucketName)
+                    .WithObject(request.ObjectKey)
+                    .WithCallbackStream(stream => stream.CopyTo(memoryStream)),
+                cancellationToken);
+
+            memoryStream.Position = 0;
+
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            return new StoredObjectContent(
+                memoryStream,
+                stat.ContentType,
+                stat.Size,
+                stat.ETag);
+        }
+        catch (Exception ex) when (ex is not StorageUnavailableException)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
+            activity?.SetTag("exception.message", ex.Message);
+
+            throw new StorageUnavailableException(
+                $"Unable to download object '{request.ObjectKey}' from bucket '{request.BucketName}'.",
+                ex);
+        }
+    }
 }
