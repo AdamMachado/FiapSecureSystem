@@ -110,10 +110,6 @@ public sealed class GenerateReportFileHandler
             }
 
             var analysisResult = AnalysisReportMappings.FromAnalysisJson(report.AnalysisData);
-            var markdown = AnalysisReportMappings.ToMarkdownDocument(
-                report.AnalysisRequestId,
-                report.RequestedByUserId,
-                analysisResult);
 
             var rendered = await renderer.RenderAsync(
                 new RenderReportRequest(
@@ -121,7 +117,7 @@ public sealed class GenerateReportFileHandler
                     report.RequestedByUserId,
                     command.Format,
                     $"analysis-report-{report.AnalysisRequestId:N}",
-                    markdown),
+                    analysisResult),
                 cancellationToken);
 
             var stored = await _reportStorage.UploadAsync(

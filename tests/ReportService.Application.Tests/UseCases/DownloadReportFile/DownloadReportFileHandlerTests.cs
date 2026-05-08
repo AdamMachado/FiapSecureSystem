@@ -141,6 +141,14 @@ public sealed class DownloadReportFileHandlerTests
         result.IsSuccess.Should().BeTrue();
         report.Files.Should().ContainSingle(x => x.Format == ReportFormat.Pdf);
 
+        _renderer.Verify(
+            x => x.RenderAsync(
+                It.Is<RenderReportRequest>(request =>
+                    request.Format == ReportFormat.Pdf &&
+                    request.FileNameWithoutExtension == $"analysis-report-{report.AnalysisRequestId:N}" &&
+                    request.AnalysisResult.Summary.Overview == "Teste"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         _storage.Verify(x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         _storage.Verify(x => x.DownloadAsync("analysis-reports", "reports/generated.pdf", It.IsAny<CancellationToken>()), Times.Once);
     }

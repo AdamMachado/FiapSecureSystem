@@ -90,6 +90,14 @@ public sealed class GenerateReportFileHandlerTests
         _unitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _storage.Verify(x => x.UploadAsync(It.IsAny<UploadReportRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         _publisher.Verify(x => x.PublishAsync(It.IsAny<IntegrationEventBase>(), It.IsAny<CancellationToken>()), Times.Once);
+        _renderer.Verify(
+            x => x.RenderAsync(
+                It.Is<RenderReportRequest>(request =>
+                    request.Format == ReportFormat.Pdf &&
+                    request.FileNameWithoutExtension == $"analysis-report-{report.AnalysisRequestId:N}" &&
+                    request.AnalysisResult.Summary.Overview == "Teste"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
