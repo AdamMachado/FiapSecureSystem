@@ -1,58 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
-using ReportService.Api.Contracts.Requests;
 using ReportService.Api.Contracts.Responses;
-using ReportService.Application.UseCases.DownloadReport;
-using ReportService.Application.UseCases.GenerateReport;
+using ReportService.Application.UseCases.DownloadReportFile;
 using ReportService.Application.UseCases.GetReportByAnalysis;
+using ReportService.Domain.Enums;
 
 namespace ReportService.Api.Controllers;
 
 [ApiController]
+[Route("reports")]
 [Route("api/reports")]
 public sealed class ReportsController : ControllerBase
 {
-    [HttpPost]
-    [ProducesResponseType(typeof(GenerateReportResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Generate(
-        [FromBody] GenerateReportRequest request,
-        [FromServices] GenerateReportHandler handler,
-        CancellationToken cancellationToken)
-    {
-        var command = new GenerateReportCommand(
-            request.AnalysisRequestId,
-            request.RequestedByUserId,
-            request.Result,
-            request.Format);
-
-        var result = await handler.HandleAsync(command, cancellationToken);
-
-        if (result.IsFailure)
-            return BadRequest(result.Error);
-
-        var response = new GenerateReportResponse(
-            result.Value.ReportId,
-            result.Value.AnalysisRequestId,
-            result.Value.Format,
-            result.Value.Status,
-            result.Value.FileName,
-            result.Value.GeneratedAtUtc);
-
-        return CreatedAtAction(
-            nameof(GetByAnalysis),
-            new { analysisRequestId = response.AnalysisRequestId },
-            response);
-    }
-
-    [HttpGet("analysis/{analysisRequestId:guid}")]
+    [HttpGet("by-analysis/{analysisId:guid}")]
     [ProducesResponseType(typeof(GetReportByAnalysisResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByAnalysis(
-        [FromRoute] Guid analysisRequestId,
+        [FromRoute] Guid analysisId,
         [FromServices] GetReportByAnalysisHandler handler,
         CancellationToken cancellationToken)
     {
-        var query = new GetReportByAnalysisQuery(analysisRequestId);
+        var query = new GetReportByAnalysisQuery(analysisId);
         var result = await handler.HandleAsync(query, cancellationToken);
 
         if (result.IsFailure)
@@ -62,31 +29,51 @@ public sealed class ReportsController : ControllerBase
             result.Value.ReportId,
             result.Value.AnalysisRequestId,
             result.Value.RequestedByUserId,
-            result.Value.Format,
-            result.Value.Status,
-            result.Value.FileName,
-            result.Value.ContentType,
+            result.Value.AnalysisData,
+            result.Value.Files
+                .Select(x => new AnalysisReportFileResponse(
+                    x.Format,
+                    x.FileName,
+                    x.ContentType,
+                    x.BucketName,
+                    x.ObjectKey,
+                    x.GeneratedAtUtc))
+                .ToArray(),
             result.Value.CreatedAtUtc,
-            result.Value.UpdatedAtUtc,
-            result.Value.GeneratedAtUtc,
-            result.Value.FailureReason);
+            result.Value.UpdatedAtUtc);
 
         return Ok(response);
     }
 
-    [HttpGet("{reportId:guid}/download")]
+    [HttpGet("by-analysis/{analysisId:guid}/files/{format}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Download(
-        [FromRoute] Guid reportId,
-        [FromServices] DownloadReportHandler handler,
+    public async Task<IActionResult> DownloadByAnalysis(
+        [FromRoute] Guid analysisId,
+        [FromRoute] string format,
+        [FromServices] DownloadReportFileHandler handler,
         CancellationToken cancellationToken)
     {
-        var query = new DownloadReportQuery(reportId);
+        if (!Enum.TryParse<ReportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest(new
+            {
+                Code = "report.invalid_format",
+                Message = $"Unsupported report format '{format}'."
+            });
+        }
+
+        var query = new DownloadReportFileQuery(analysisId, parsedFormat);
         var result = await handler.HandleAsync(query, cancellationToken);
 
         if (result.IsFailure)
-            return NotFound(result.Error);
+        {
+            if (result.Error.Type == Shared.Kernel.Result.ErrorType.NotFound)
+                return NotFound(result.Error);
+
+            return BadRequest(result.Error);
+        }
 
         return File(
             result.Value.Content,

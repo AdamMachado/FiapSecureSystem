@@ -1,8 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ReportService.Domain.Entities;
 using ReportService.Infrastructure.Configuration.Options;
-using System.Reflection.Emit;
 
 namespace ReportService.Infrastructure.Persistence.Context;
 
@@ -17,6 +16,7 @@ public sealed class ReportDbContext : DbContext
     }
 
     public DbSet<AnalysisReport> AnalysisReports => Set<AnalysisReport>();
+    public DbSet<AnalysisReportFile> AnalysisReportFiles => Set<AnalysisReportFile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

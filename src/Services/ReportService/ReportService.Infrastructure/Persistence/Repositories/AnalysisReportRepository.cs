@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ReportService.Application.Abstractions.Persistence;
 using ReportService.Domain.Entities;
 using ReportService.Infrastructure.Persistence.Context;
@@ -18,13 +18,14 @@ public sealed class AnalysisReportRepository : IAnalysisReportRepository
         => _dbContext.AnalysisReports.AddAsync(report, cancellationToken).AsTask();
 
     public Task<AnalysisReport?> GetByIdAsync(Guid reportId, CancellationToken cancellationToken = default)
-        => _dbContext.AnalysisReports.FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken);
+        => _dbContext.AnalysisReports
+            .Include(x => x.Files)
+            .FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken);
 
     public Task<AnalysisReport?> GetByAnalysisRequestIdAsync(Guid analysisRequestId, CancellationToken cancellationToken = default)
-        => _dbContext.AnalysisReports.FirstOrDefaultAsync(x => x.AnalysisRequestId == analysisRequestId, cancellationToken);
-
-    public Task<bool> ExistsByAnalysisRequestIdAsync(Guid analysisRequestId, CancellationToken cancellationToken = default)
-        => _dbContext.AnalysisReports.AnyAsync(x => x.AnalysisRequestId == analysisRequestId, cancellationToken);
+        => _dbContext.AnalysisReports
+            .Include(x => x.Files)
+            .FirstOrDefaultAsync(x => x.AnalysisRequestId == analysisRequestId, cancellationToken);
 
     public void Update(AnalysisReport report)
         => _dbContext.AnalysisReports.Update(report);

@@ -1,4 +1,5 @@
-﻿using ReportService.Domain.Enums;
+using System.Text.Json;
+using ReportService.Domain.Enums;
 
 namespace ReportService.Application.UseCases.GetReportByAnalysis;
 
@@ -6,13 +7,15 @@ public sealed record GetReportByAnalysisResult(
     Guid ReportId,
     Guid AnalysisRequestId,
     Guid RequestedByUserId,
-    ReportStatus Status,
+    JsonElement AnalysisData,
+    IReadOnlyCollection<GetReportByAnalysisFileResult> Files,
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);
+
+public sealed record GetReportByAnalysisFileResult(
     ReportFormat Format,
     string FileName,
     string ContentType,
     string BucketName,
     string ObjectKey,
-    DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc,
-    DateTime? GeneratedAtUtc,
-    string? FailureReason);
+    DateTime GeneratedAtUtc);

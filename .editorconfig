@@ -1,0 +1,12 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+[*.{cs,csproj,json,md}]
+end_of_line = crlf
+
+[*.{sh,yml,yaml,Dockerfile}]
+end_of_line = lf
