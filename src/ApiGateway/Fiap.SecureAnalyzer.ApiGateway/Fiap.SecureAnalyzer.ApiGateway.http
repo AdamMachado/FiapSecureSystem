@@ -1,0 +1,6 @@
+@Fiap.SecureAnalyzer.ApiGateway_HostAddress = http://localhost:5286
+
+GET {{Fiap.SecureAnalyzer.ApiGateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

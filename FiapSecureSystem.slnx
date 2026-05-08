@@ -15,6 +15,9 @@
     <File Path="docker-compose.yaml" />
   </Folder>
   <Folder Name="/src/" />
+  <Folder Name="/src/ApiGateway/">
+    <Project Path="src/ApiGateway/Fiap.SecureAnalyzer.ApiGateway/Fiap.SecureAnalyzer.ApiGateway.csproj" />
+  </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/ProcessingService/">
     <Project Path="src/Services/ProcessingService/ProcessingService.Application/ProcessingService.Application.csproj" />
@@ -34,13 +37,13 @@
     <Project Path="src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj" />
     <Project Path="src/Services/UploadService/UploadService.Infrastructure/UploadService.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Services/Web/">
-    <Project Path="src/Web/FIAPSecureAnalyzer.Site/FIAPSecureSystem.Site.csproj" />
-  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/Shared.Contracts/Shared.Contracts.csproj" />
     <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj" />
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
+  </Folder>
+  <Folder Name="/src/WebApp/">
+    <Project Path="src/WebApp/Fiap.SecureAnalyzer.WebApp/Fiap.SecureSystem.WebApp.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ProcessingService.Application.Tests/ProcessingService.Application.Tests.csproj" />
