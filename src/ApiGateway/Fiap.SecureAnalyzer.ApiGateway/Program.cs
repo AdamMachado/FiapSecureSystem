@@ -28,6 +28,11 @@ builder.Services.AddApiGatewaySwagger();
 builder.Services.AddApiGatewayServices(builder.Configuration);
 
 var app = builder.Build();
+var isRunningInContainer =
+    string.Equals(
+        Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
@@ -45,7 +50,8 @@ if (app.Environment.IsDevelopment())
     app.UseApiGatewaySwagger();
 }
 
-app.UseHttpsRedirection();
+if (!isRunningInContainer)
+    app.UseHttpsRedirection();
 app.MapControllers();
 app.UseSharedHealthChecks();
 
