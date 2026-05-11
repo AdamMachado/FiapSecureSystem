@@ -9,11 +9,11 @@ using Shared.Kernel.Pagination;
 namespace Fiap.SecureAnalyzer.ApiGateway.Controllers;
 
 [ApiController]
-[Route("api/upload")]
+[Route("api/analysis")]
 [Produces("application/json")]
-public sealed class UploadController : ControllerBase
+public sealed class AnalysisController : ControllerBase
 {
-    [HttpPost("analyses")]
+    [HttpPost]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(CreateAnalysisResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -49,7 +49,7 @@ public sealed class UploadController : ControllerBase
         }
     }
 
-    [HttpGet("analyses")]
+    [HttpGet]
     [ProducesResponseType(typeof(PagedResult<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> ListAnalysesAsync(
@@ -68,7 +68,7 @@ public sealed class UploadController : ControllerBase
         }
     }
 
-    [HttpPost("analyses/status-check")]
+    [HttpPost("status-check")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IReadOnlyCollection<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -97,7 +97,7 @@ public sealed class UploadController : ControllerBase
         }
     }
 
-    [HttpGet("analyses/{analysisId:guid}")]
+    [HttpGet("{analysisId:guid}")]
     [ProducesResponseType(typeof(AnalysisDetailsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -126,7 +126,7 @@ public sealed class UploadController : ControllerBase
         }
     }
 
-    [HttpGet("analyses/{analysisId:guid}/asset")]
+    [HttpGet("{analysisId:guid}/asset")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]

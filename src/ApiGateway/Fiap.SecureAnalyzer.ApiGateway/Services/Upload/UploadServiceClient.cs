@@ -34,7 +34,7 @@ public sealed class UploadServiceClient : IUploadServiceClient
 
         form.Add(streamContent, "file", file.FileName);
 
-        using var response = await _httpClient.PostAsync("/api/analyses", form, cancellationToken);
+        using var response = await _httpClient.PostAsync("/api/analysis", form, cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<CreateAnalysisResponse>(response, cancellationToken);
@@ -44,7 +44,7 @@ public sealed class UploadServiceClient : IUploadServiceClient
         PaginationParams paginationParams,
         CancellationToken cancellationToken)
     {
-        var path = $"/api/analyses?pageNumber={paginationParams.PageNumber}&pageSize={paginationParams.PageSize}";
+        var path = $"/api/analysis?pageNumber={paginationParams.PageNumber}&pageSize={paginationParams.PageSize}";
 
         using var response = await _httpClient.GetAsync(path, cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
@@ -58,7 +58,7 @@ public sealed class UploadServiceClient : IUploadServiceClient
     {
         var request = new AnalysisIdsRequest(analysisRequestIds);
         using var content = CreateJsonContent(request);
-        using var response = await _httpClient.PostAsync("/api/analyses/by-ids", content, cancellationToken);
+        using var response = await _httpClient.PostAsync("/api/analysis/by-ids", content, cancellationToken);
 
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
@@ -69,7 +69,7 @@ public sealed class UploadServiceClient : IUploadServiceClient
         Guid analysisRequestId,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync($"/api/analyses/{analysisRequestId}", cancellationToken);
+        using var response = await _httpClient.GetAsync($"/api/analysis/{analysisRequestId}", cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<AnalysisStatusResponse>(response, cancellationToken);
@@ -80,7 +80,7 @@ public sealed class UploadServiceClient : IUploadServiceClient
         CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"/api/analyses/{analysisRequestId}/asset",
+            $"/api/analysis/{analysisRequestId}/asset",
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 

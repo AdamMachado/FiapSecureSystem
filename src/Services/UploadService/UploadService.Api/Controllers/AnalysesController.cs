@@ -14,7 +14,7 @@ using UploadService.Application.UseCases.ListUserAnalysisRequests;
 namespace UploadService.Api.Controllers;
 
 [ApiController]
-[Route("api/analyses")]
+[Route("api/analysis")]
 [Produces("application/json")]
 public sealed class AnalysesController : ControllerBase
 {

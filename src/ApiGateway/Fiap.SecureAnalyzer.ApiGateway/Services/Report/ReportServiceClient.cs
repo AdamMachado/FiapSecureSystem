@@ -19,7 +19,7 @@ public sealed class ReportServiceClient : IReportServiceClient
         Guid analysisId,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync($"/api/reports/by-analysis/{analysisId}", cancellationToken);
+        using var response = await _httpClient.GetAsync($"/api/report/by-analysis/{analysisId}", cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<ReportByAnalysisResponse>(response, cancellationToken);
@@ -45,7 +45,7 @@ public sealed class ReportServiceClient : IReportServiceClient
         CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"/api/reports/by-analysis/{analysisId}/files/{Uri.EscapeDataString(format)}",
+            $"/api/report/by-analysis/{analysisId}/files/{Uri.EscapeDataString(format)}",
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 

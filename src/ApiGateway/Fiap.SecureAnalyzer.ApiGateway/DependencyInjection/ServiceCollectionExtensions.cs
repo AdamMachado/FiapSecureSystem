@@ -1,6 +1,7 @@
 using Fiap.SecureAnalyzer.ApiGateway.Options;
 using Fiap.SecureAnalyzer.ApiGateway.Services.Report;
 using Fiap.SecureAnalyzer.ApiGateway.Services.Upload;
+using Microsoft.Extensions.Options;
 
 namespace Fiap.SecureAnalyzer.ApiGateway.DependencyInjection;
 
@@ -25,7 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IUploadServiceClient, UploadServiceClient>((serviceProvider, client) =>
         {
             var options = serviceProvider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<UploadServiceOptions>>()
+                .GetRequiredService<IOptions<UploadServiceOptions>>()
                 .Value;
 
             client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
@@ -34,7 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IReportServiceClient, ReportServiceClient>((serviceProvider, client) =>
         {
             var options = serviceProvider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<ReportServiceOptions>>()
+                .GetRequiredService<IOptions<ReportServiceOptions>>()
                 .Value;
 
             client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
