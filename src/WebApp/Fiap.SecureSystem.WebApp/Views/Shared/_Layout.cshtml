@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FIAP Secure System</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Fiap.SecureSystem.WebApp.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/x-icon" href="~/images/favicon.ico" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body class="app-body">
+    <header class="app-header">
+        <nav class="app-navbar">
+            <a class="app-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo.png" class="app-logo" alt="FIAP Secure System" />
+                <span>Secure System</span>
+            </a>
+
+            <div class="app-nav-links">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+                <a asp-controller="Analyses" asp-action="Create">Enviar diagrama</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="app-main" role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="app-footer">
+        <span>&copy; 2026 - FIAP Secure System</span>
+        <span>SOAT Tech Challenge - Hackathon</span>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

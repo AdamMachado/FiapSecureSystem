@@ -16,7 +16,7 @@
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/ApiGateway/">
-    <Project Path="src/ApiGateway/Fiap.SecureAnalyzer.ApiGateway/Fiap.SecureAnalyzer.ApiGateway.csproj" />
+    <Project Path="src/ApiGateway/Fiap.SecureSystem.ApiGateway/Fiap.SecureSystem.ApiGateway.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/ProcessingService/">
@@ -43,7 +43,7 @@
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
   </Folder>
   <Folder Name="/src/WebApp/">
-    <Project Path="src/WebApp/Fiap.SecureAnalyzer.WebApp/Fiap.SecureSystem.WebApp.csproj" />
+    <Project Path="src/WebApp/Fiap.SecureSystem.WebApp/Fiap.SecureSystem.WebApp.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ProcessingService.Application.Tests/ProcessingService.Application.Tests.csproj" />
