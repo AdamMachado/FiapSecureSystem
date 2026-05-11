@@ -1,7 +1,25 @@
+using Fiap.SecureAnalyzer.WebApp.Clients.ApiGateway;
+using Fiap.SecureAnalyzer.WebApp.Options;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services
+    .AddOptions<ApiGatewayOptions>()
+    .Bind(builder.Configuration.GetSection(ApiGatewayOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<IApiGatewayClient, ApiGatewayClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider
+        .GetRequiredService<IOptions<ApiGatewayOptions>>()
+        .Value;
+
+    client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+});
 
 var app = builder.Build();
 

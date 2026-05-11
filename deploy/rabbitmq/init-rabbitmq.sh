@@ -9,7 +9,7 @@ RABBITMQ_PASS="${RABBITMQ_PASS:-${RABBITMQ_PASS:-fiap_app_dev_password}}"
 RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
 
 # Encode simples para vhost "/".
-# Para o vhost padr„o "/", a API espera "%2F".
+# Para o vhost padr√£o "/", a API espera "%2F".
 VHOST_ENCODED="$(printf '%s' "$RABBITMQ_VHOST" | sed 's|/|%2F|g')"
 
 API_BASE="http://${RABBITMQ_HOST}:${RABBITMQ_MANAGEMENT_PORT}/api"

@@ -1,28 +1,87 @@
+using System.Net;
+using Fiap.SecureAnalyzer.WebApp.Clients.ApiGateway;
+using Fiap.SecureAnalyzer.WebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Fiap.SecureAnalyzer.Site.Controllers;
+namespace Fiap.SecureAnalyzer.WebApp.Controllers;
 
-public class AnalysesController : Controller
+public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
 {
-    public IActionResult Details(Guid id)
+    public async Task<IActionResult> Details(Guid id, CancellationToken cancellationToken)
     {
-        // depois vamos buscar da API
-        return View();
+        try
+        {
+            var response = await apiGatewayClient.GetAnalysisDetailsAsync(id, cancellationToken);
+            var model = new AnalysisDetailsViewModel
+            {
+                Id = response.Analysis.AnalysisRequestId,
+                FileName = response.Analysis.FileName,
+                Status = StatusPresentation.ToDisplayLabel(response.Analysis.Status),
+                StatusCssClass = StatusPresentation.ToCssClass(response.Analysis.Status),
+                ContentType = response.Analysis.ContentType,
+                SizeInBytes = response.Analysis.SizeInBytes,
+                CreatedAtUtc = response.Analysis.CreatedAtUtc,
+                UpdatedAtUtc = response.Analysis.UpdatedAtUtc,
+                StartedAtUtc = response.Analysis.StartedAtUtc,
+                CompletedAtUtc = response.Analysis.CompletedAtUtc,
+                FailedAtUtc = response.Analysis.FailedAtUtc,
+                FailureReason = response.Analysis.FailureReason,
+                HasReport = response.Report is not null,
+                ReportDetailsUrl = response.Report is null ? null : Url.Action("Details", "Reports", new { analysisId = id }),
+                ReportDownloadUrl = response.Report is null ? null : Url.Action(nameof(DownloadReport), new { id, format = "pdf" }),
+                AssetDownloadUrl = Url.Action(nameof(DownloadAsset), new { id })
+            };
+
+            return View(model);
+        }
+        catch (ApiGatewayClientException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
     }
 
     public IActionResult Create()
     {
-        return View();
+        return View(new AnalysisCreateViewModel());
     }
 
     [HttpPost]
-    public async Task<IActionResult> Upload(IFormFile file)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Upload(IFormFile? file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
-            return View();
+        {
+            return View("Create", new AnalysisCreateViewModel
+            {
+                ErrorMessage = "Selecione um arquivo antes de enviar."
+            });
+        }
 
-        // depois vamos enviar para API
+        try
+        {
+            var response = await apiGatewayClient.UploadAnalysisAsync(file, cancellationToken);
+            return RedirectToAction(nameof(Details), new { id = response.AnalysisRequestId });
+        }
+        catch (ApiGatewayClientException exception)
+        {
+            return View("Create", new AnalysisCreateViewModel
+            {
+                ErrorMessage = exception.Message
+            });
+        }
+    }
 
-        return RedirectToAction("Dashboard", "Home");
+    [HttpGet]
+    public async Task<IActionResult> DownloadReport(Guid id, string format = "pdf", CancellationToken cancellationToken = default)
+    {
+        var file = await apiGatewayClient.DownloadReportAsync(id, format, cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadAsset(Guid id, CancellationToken cancellationToken)
+    {
+        var file = await apiGatewayClient.DownloadAnalysisAssetAsync(id, cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
     }
 }

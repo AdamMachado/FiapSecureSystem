@@ -1,4 +1,6 @@
-﻿@{
+@model AnalysisDetailsViewModel
+
+@{
     ViewData["Title"] = "Detalhes da Análise";
 }
 
@@ -7,12 +9,11 @@
 }
 
 <section class="analysis-details">
-
     <div class="details-header">
         <div>
             <span class="page-label">Análise</span>
-            <h1>arquitetura-pagamentos.pdf</h1>
-            <p>ID: 11111111-1111-1111-1111-111111111111</p>
+            <h1>@Model.FileName</h1>
+            <p>ID: @Model.Id</p>
         </div>
 
         <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
@@ -20,67 +21,103 @@
         </a>
     </div>
 
-    <!-- STATUS TIMELINE -->
     <div class="timeline-card">
         <h2>Status do processamento</h2>
 
         <div class="timeline">
-
             <div class="timeline-step done">
                 <span>✓</span>
                 <div>
                     <strong>Recebido</strong>
-                    <p>Arquivo enviado com sucesso</p>
+                    <p>Arquivo enviado em @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
                 </div>
             </div>
 
-            <div class="timeline-step active">
+            <div class="timeline-step @(Model.StatusCssClass == "processing" ? "active" : "done")">
                 <span>⏳</span>
                 <div>
                     <strong>Processando</strong>
-                    <p>IA analisando o diagrama</p>
+                    <p>@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "IA analisando o diagrama")</p>
                 </div>
             </div>
 
-            <div class="timeline-step">
+            <div class="timeline-step @(Model.StatusCssClass == "completed" ? "done" : string.Empty)">
                 <span>✓</span>
                 <div>
                     <strong>Analisado</strong>
-                    <p>Aguardando conclusão</p>
+                    <p>
+                        @if (Model.CompletedAtUtc.HasValue)
+                        {
+                            @:Concluído em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
+                        else if (Model.FailedAtUtc.HasValue)
+                        {
+                            @:Falhou em @Model.FailedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
+                        else
+                        {
+                            @:Aguardando conclusão
+                        }
+                    </p>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- INFORMAÇÕES -->
     <div class="info-grid">
-
         <div class="info-card">
             <h3>Informações</h3>
             <ul>
-                <li><strong>Tipo:</strong> PDF</li>
-                <li><strong>Tamanho:</strong> 1.2 MB</li>
-                <li><strong>Enviado em:</strong> 02/05/2026</li>
+                <li><strong>Tipo:</strong> @Model.ContentType</li>
+                <li><strong>Tamanho:</strong> @((Model.SizeInBytes / 1024d / 1024d).ToString("0.00")) MB</li>
+                <li><strong>Enviado em:</strong> @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</li>
+                <li><strong>Atualizado em:</strong> @Model.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</li>
             </ul>
         </div>
 
         <div class="info-card">
             <h3>Status</h3>
-            <span class="status-pill processing">Processando</span>
+            <span class="status-pill @Model.StatusCssClass">@Model.Status</span>
+            @if (!string.IsNullOrWhiteSpace(Model.FailureReason))
+            {
+                <p class="mt-3 mb-0">@Model.FailureReason</p>
+            }
         </div>
-
     </div>
 
-    <!-- RELATÓRIO -->
     <div class="report-card">
         <h2>Relatório</h2>
 
-        <p>Disponível após a conclusão da análise.</p>
+        @if (Model.HasReport)
+        {
+            <p>Relatório disponível para consulta e download.</p>
 
-        <button class="app-btn app-btn-primary" disabled>
-            Baixar relatório
-        </button>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="@Model.ReportDetailsUrl" class="app-btn app-btn-secondary">
+                    Ver relatório
+                </a>
+                <a href="@Model.ReportDownloadUrl" class="app-btn app-btn-primary">
+                    Baixar relatório
+                </a>
+            </div>
+        }
+        else
+        {
+            <p>Disponível após a conclusão da análise.</p>
+
+            <button class="app-btn app-btn-primary" disabled>
+                Baixar relatório
+            </button>
+        }
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(Model.AssetDownloadUrl))
+    {
+        <div class="report-card">
+            <h2>Arquivo original</h2>
+            <a href="@Model.AssetDownloadUrl" class="app-btn app-btn-secondary">
+                Baixar diagrama enviado
+            </a>
+        </div>
+    }
 </section>

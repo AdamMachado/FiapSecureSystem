@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Fiap.SecureAnalyzer.ApiGateway.Options;
 using Fiap.SecureAnalyzer.ApiGateway.Services.Report;
 using Fiap.SecureAnalyzer.ApiGateway.Services.Upload;
@@ -11,6 +12,15 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services
+            .AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
+        services.AddEndpointsApiExplorer();
+
         services
             .AddOptions<UploadServiceOptions>()
             .Bind(configuration.GetSection(UploadServiceOptions.SectionName))

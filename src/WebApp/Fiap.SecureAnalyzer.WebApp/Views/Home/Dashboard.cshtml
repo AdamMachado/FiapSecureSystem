@@ -1,4 +1,6 @@
-﻿@{
+@model DashboardViewModel
+
+@{
     ViewData["Title"] = "Dashboard";
 }
 
@@ -19,28 +21,35 @@
         </a>
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
+
     <div class="summary-grid">
         <div class="summary-card">
             <span>Total</span>
-            <strong>12</strong>
+            <strong>@Model.TotalAnalyses</strong>
             <p>Análises criadas</p>
         </div>
 
         <div class="summary-card">
             <span>Processando</span>
-            <strong>3</strong>
+            <strong>@Model.ProcessingAnalyses</strong>
             <p>Em andamento</p>
         </div>
 
         <div class="summary-card">
             <span>Analisadas</span>
-            <strong>8</strong>
+            <strong>@Model.CompletedAnalyses</strong>
             <p>Relatórios disponíveis</p>
         </div>
 
         <div class="summary-card danger">
             <span>Erro</span>
-            <strong>1</strong>
+            <strong>@Model.FailedAnalyses</strong>
             <p>Falhas encontradas</p>
         </div>
     </div>
@@ -54,33 +63,43 @@
         </div>
 
         <div class="analysis-list">
-
-            <div class="analysis-row">
-                <div class="analysis-info">
-                    <strong>arquitetura-pagamentos.pdf</strong>
-                    <span>Enviado em 02/05 • PDF</span>
+            @if (Model.RecentAnalyses.Count == 0)
+            {
+                <div class="analysis-row">
+                    <div class="analysis-info">
+                        <strong>Nenhuma análise encontrada</strong>
+                        <span>Envie um diagrama para iniciar o pipeline.</span>
+                    </div>
                 </div>
+            }
+            else
+            {
+                @foreach (var analysis in Model.RecentAnalyses)
+                {
+                    <div class="analysis-row">
+                        <div class="analysis-info">
+                            <strong>@analysis.FileName</strong>
+                            <span>Enviado em @analysis.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") • @analysis.ContentType</span>
+                        </div>
 
-                <div class="analysis-meta">
-                    <span class="status-pill processing">Processando</span>
-                    <a asp-controller="Analyses" asp-action="Details" class="link">
-                        Ver detalhes →
-                    </a>
-                </div>
-            </div>
-
-            <div class="analysis-row">
-                <div class="analysis-info">
-                    <strong>ecommerce-cloud.png</strong>
-                    <span>Enviado em 01/05 • PNG</span>
-                </div>
-
-                <div class="analysis-meta">
-                    <span class="status-pill completed">Analisado</span>
-                    <a class="link">Ver relatório →</a>
-                </div>
-            </div>
-
+                        <div class="analysis-meta">
+                            <span class="status-pill @analysis.StatusCssClass">@analysis.Status</span>
+                            @if (analysis.HasReport)
+                            {
+                                <a asp-controller="Reports" asp-action="Details" asp-route-analysisId="@analysis.Id" class="link">
+                                    Ver relatório →
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-controller="Analyses" asp-action="Details" asp-route-id="@analysis.Id" class="link">
+                                    Ver detalhes →
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            }
         </div>
     </div>
 </section>

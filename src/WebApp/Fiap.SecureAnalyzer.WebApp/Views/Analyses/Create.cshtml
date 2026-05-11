@@ -1,4 +1,6 @@
-﻿@{
+@model AnalysisCreateViewModel
+
+@{
     ViewData["Title"] = "Enviar Diagrama";
 }
 
@@ -7,6 +9,12 @@
 }
 
 <section class="upload-page">
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
 
     <div class="upload-header">
         <div>
@@ -21,9 +29,9 @@
     </div>
 
     <form asp-controller="Analyses" asp-action="Upload" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
 
         <div class="upload-card">
-
             <label class="dropzone" id="dropzone">
                 <input type="file" name="file" id="fileInput" hidden />
 
@@ -31,7 +39,7 @@
                     <span class="icon">📂</span>
                     <strong>Arraste seu arquivo aqui</strong>
                     <p>ou clique para selecionar</p>
-                    <small>PDF, PNG ou JPEG • até 10MB</small>
+                    <small>PDF, PNG ou JPEG</small>
                 </div>
             </label>
 
@@ -39,7 +47,6 @@
                 <strong id="fileName"></strong>
                 <span id="fileSize"></span>
             </div>
-
         </div>
 
         <div class="upload-actions">
@@ -47,9 +54,7 @@
                 Enviar para análise
             </button>
         </div>
-
     </form>
-
 </section>
 
 @section Scripts {
@@ -64,7 +69,9 @@
 
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            showFile(file);
+            if (file) {
+                showFile(file);
+            }
         });
 
         dropzone.addEventListener('dragover', (e) => {
@@ -82,7 +89,10 @@
 
             const file = e.dataTransfer.files[0];
             input.files = e.dataTransfer.files;
-            showFile(file);
+
+            if (file) {
+                showFile(file);
+            }
         });
 
         function showFile(file) {

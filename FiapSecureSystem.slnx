@@ -13,6 +13,7 @@
     <File Path="docker-compose-infra.yaml" />
     <File Path="docker-compose.rabbitmq.yaml" />
     <File Path="docker-compose.yaml" />
+    <File Path="errors.txt" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/ApiGateway/">
