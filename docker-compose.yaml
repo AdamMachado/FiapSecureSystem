@@ -17,6 +17,8 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
 
+      ApiGateway__BaseUrl: http://api-gateway:8080
+
       OpenTelemetry__ServiceName: SOAT.WebApp
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
@@ -40,6 +42,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+
+      ExternalServices__UploadService__BaseUrl: http://uploadservice-api:8080
+      ExternalServices__ReportService__BaseUrl: http://reportservice-api:8080
 
       OpenTelemetry__ServiceName: SOAT.ApiGateway
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
