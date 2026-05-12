@@ -188,7 +188,10 @@ public sealed class AnalysesController : ControllerBase
         if (result.IsFailure)
             return result.ToProblemHttpResult();
 
-        return Results.File(result.Value.Content, result.Value.ContentType);
+        return Results.File(
+            result.Value.Content,
+            result.Value.ContentType,
+            fileDownloadName: result.Value.FileName);
     }
 
     private static async Task<string> ComputeSha256Async(Stream stream, CancellationToken cancellationToken)

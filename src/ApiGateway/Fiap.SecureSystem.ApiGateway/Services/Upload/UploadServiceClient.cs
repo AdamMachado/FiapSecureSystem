@@ -34,7 +34,9 @@ public sealed class UploadServiceClient : IUploadServiceClient
 
         form.Add(streamContent, "file", file.FileName);
 
-        using var response = await _httpClient.PostAsync("/api/analysis", form, cancellationToken);
+        using var response = await SendAsync(
+            () => _httpClient.PostAsync("/api/analysis", form, cancellationToken),
+            cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<CreateAnalysisResponse>(response, cancellationToken);
@@ -46,7 +48,9 @@ public sealed class UploadServiceClient : IUploadServiceClient
     {
         var path = $"/api/analysis?pageNumber={paginationParams.PageNumber}&pageSize={paginationParams.PageSize}";
 
-        using var response = await _httpClient.GetAsync(path, cancellationToken);
+        using var response = await SendAsync(
+            () => _httpClient.GetAsync(path, cancellationToken),
+            cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<PagedResult<AnalysisSummaryResponse>>(response, cancellationToken);
@@ -58,7 +62,9 @@ public sealed class UploadServiceClient : IUploadServiceClient
     {
         var request = new AnalysisIdsRequest(analysisRequestIds);
         using var content = CreateJsonContent(request);
-        using var response = await _httpClient.PostAsync("/api/analysis/by-ids", content, cancellationToken);
+        using var response = await SendAsync(
+            () => _httpClient.PostAsync("/api/analysis/by-ids", content, cancellationToken),
+            cancellationToken);
 
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
@@ -69,7 +75,9 @@ public sealed class UploadServiceClient : IUploadServiceClient
         Guid analysisRequestId,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync($"/api/analysis/{analysisRequestId}", cancellationToken);
+        using var response = await SendAsync(
+            () => _httpClient.GetAsync($"/api/analysis/{analysisRequestId}", cancellationToken),
+            cancellationToken);
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
 
         return await ReadFromJsonAsync<AnalysisStatusResponse>(response, cancellationToken);
@@ -79,9 +87,11 @@ public sealed class UploadServiceClient : IUploadServiceClient
         Guid analysisRequestId,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync(
-            $"/api/analysis/{analysisRequestId}/asset",
-            HttpCompletionOption.ResponseHeadersRead,
+        using var response = await SendAsync(
+            () => _httpClient.GetAsync(
+                $"/api/analysis/{analysisRequestId}/asset",
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken),
             cancellationToken);
 
         await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
@@ -96,6 +106,24 @@ public sealed class UploadServiceClient : IUploadServiceClient
 
     private static StringContent CreateJsonContent<T>(T payload)
         => new(JsonSerializer.Serialize(payload, JsonDefaults.Options), Encoding.UTF8, "application/json");
+
+    private static async Task<HttpResponseMessage> SendAsync(
+        Func<Task<HttpResponseMessage>> send,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await send();
+        }
+        catch (HttpRequestException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new UpstreamServiceException(
+                ServiceName,
+                System.Net.HttpStatusCode.BadGateway,
+                "UPSTREAM_CONNECTION_FAILED",
+                $"Nao foi possivel conectar ao {ServiceName}. Verifique se o servico esta em execucao. Detalhes: {exception.Message}");
+        }
+    }
 
     private static async Task<T> ReadFromJsonAsync<T>(
         HttpResponseMessage response,

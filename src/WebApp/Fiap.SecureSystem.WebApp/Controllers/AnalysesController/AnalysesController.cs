@@ -7,6 +7,13 @@ namespace Fiap.SecureSystem.WebApp.Controllers;
 
 public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
 {
+    private static readonly HashSet<string> AllowedReportFormats = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "markdown",
+        "json",
+        "pdf"
+    };
+
     public async Task<IActionResult> Details(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -28,7 +35,7 @@ public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
                 FailureReason = response.Analysis.FailureReason,
                 HasReport = response.Report is not null,
                 ReportDetailsUrl = response.Report is null ? null : Url.Action("Details", "Reports", new { analysisId = id }),
-                ReportDownloadUrl = response.Report is null ? null : Url.Action(nameof(DownloadReport), new { id, format = "pdf" }),
+                ReportDownloadUrl = response.Report is null ? null : Url.Action(nameof(DownloadReport), new { id }),
                 AssetDownloadUrl = Url.Action(nameof(DownloadAsset), new { id })
             };
 
@@ -74,8 +81,21 @@ public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
     [HttpGet]
     public async Task<IActionResult> DownloadReport(Guid id, string format = "pdf", CancellationToken cancellationToken = default)
     {
-        var file = await apiGatewayClient.DownloadReportAsync(id, format, cancellationToken);
-        return File(file.Content, file.ContentType, file.FileName);
+        if (!AllowedReportFormats.Contains(format))
+        {
+            return BadRequest("Formato de relatorio invalido.");
+        }
+
+        try
+        {
+            var file = await apiGatewayClient.DownloadReportAsync(id, format, cancellationToken);
+            return File(file.Content, file.ContentType, file.FileName);
+        }
+        catch (ApiGatewayClientException exception)
+        {
+            TempData["DownloadReportError"] = exception.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 
     [HttpGet]
