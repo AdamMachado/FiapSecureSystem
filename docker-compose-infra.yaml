@@ -49,9 +49,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
     networks:
       - soat-net
@@ -66,7 +68,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${REPORT_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
@@ -85,8 +87,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
@@ -101,7 +104,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
       RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_ERLANG_COOKIE: "fiapsecure-static-cookie"
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE}
     ports:
       - "${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT}:15672"
@@ -116,7 +119,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 70s
+      start_period: 50s
     networks:
       - soat-net
 
