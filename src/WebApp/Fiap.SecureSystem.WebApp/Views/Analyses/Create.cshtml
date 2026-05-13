@@ -28,13 +28,13 @@
         </a>
     </div>
 
-    <form asp-controller="Analyses" asp-action="Upload" method="post" enctype="multipart/form-data">
+    <form asp-controller="Analyses" asp-action="Upload" method="post" enctype="multipart/form-data" id="uploadForm">
         @Html.AntiForgeryToken()
 
         <div class="upload-card">
-            <label class="dropzone" id="dropzone">
-                <input type="file" name="file" id="fileInput" hidden />
+            <input type="file" name="file" id="fileInput" class="file-input" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required />
 
+            <label class="dropzone" id="dropzone" for="fileInput">
                 <div class="drop-content">
                     <span class="icon">📂</span>
                     <strong>Arraste seu arquivo aqui</strong>
@@ -50,7 +50,7 @@
         </div>
 
         <div class="upload-actions">
-            <button type="submit" class="app-btn app-btn-primary">
+            <button type="submit" class="app-btn app-btn-primary" id="submitButton">
                 Enviar para análise
             </button>
         </div>
@@ -64,8 +64,8 @@
         const preview = document.getElementById('filePreview');
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
-
-        dropzone.addEventListener('click', () => input.click());
+        const uploadForm = document.getElementById('uploadForm');
+        const submitButton = document.getElementById('submitButton');
 
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -93,6 +93,11 @@
             if (file) {
                 showFile(file);
             }
+        });
+
+        uploadForm.addEventListener('submit', () => {
+            submitButton.disabled = true;
+            submitButton.innerText = 'Enviando...';
         });
 
         function showFile(file) {

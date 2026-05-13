@@ -24,8 +24,10 @@ public sealed class ApiGatewayClient(HttpClient httpClient) : IApiGatewayClient
         int pageSize,
         CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync(
+        using var response = await SendAsync(
+            () => httpClient.GetAsync(
             $"/api/analysis?pageNumber={pageNumber}&pageSize={pageSize}",
+            cancellationToken),
             cancellationToken);
 
         return await ReadJsonAsync<PagedResult<AnalysisSummaryResponse>>(response, cancellationToken)
@@ -34,7 +36,9 @@ public sealed class ApiGatewayClient(HttpClient httpClient) : IApiGatewayClient
 
     public async Task<AnalysisDetailsResponse> GetAnalysisDetailsAsync(Guid analysisId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/api/analysis/{analysisId}", cancellationToken);
+        using var response = await SendAsync(
+            () => httpClient.GetAsync($"/api/analysis/{analysisId}", cancellationToken),
+            cancellationToken);
         return await ReadJsonAsync<AnalysisDetailsResponse>(response, cancellationToken)
             ?? throw new ApiGatewayClientException(HttpStatusCode.BadGateway, "ApiGateway returned an empty analysis response.");
     }
@@ -51,28 +55,52 @@ public sealed class ApiGatewayClient(HttpClient httpClient) : IApiGatewayClient
 
         formData.Add(fileContent, "file", file.FileName);
 
-        using var response = await httpClient.PostAsync("/api/analysis", formData, cancellationToken);
+        using var response = await SendAsync(
+            () => httpClient.PostAsync("/api/analysis", formData, cancellationToken),
+            cancellationToken);
         return await ReadJsonAsync<CreateAnalysisResponse>(response, cancellationToken)
             ?? throw new ApiGatewayClientException(HttpStatusCode.BadGateway, "ApiGateway returned an empty upload response.");
     }
 
     public async Task<ReportByAnalysisResponse> GetReportByAnalysisAsync(Guid analysisId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/api/report/by-analysis/{analysisId}", cancellationToken);
+        using var response = await SendAsync(
+            () => httpClient.GetAsync($"/api/report/by-analysis/{analysisId}", cancellationToken),
+            cancellationToken);
         return await ReadJsonAsync<ReportByAnalysisResponse>(response, cancellationToken)
             ?? throw new ApiGatewayClientException(HttpStatusCode.BadGateway, "ApiGateway returned an empty report response.");
     }
 
     public async Task<ApiGatewayFileResponse> DownloadReportAsync(Guid analysisId, string format, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/api/report/by-analysis/{analysisId}/files/{format}", cancellationToken);
+        using var response = await SendAsync(
+            () => httpClient.GetAsync($"/api/report/by-analysis/{analysisId}/files/{format}", cancellationToken),
+            cancellationToken);
         return await ReadFileAsync(response, cancellationToken);
     }
 
     public async Task<ApiGatewayFileResponse> DownloadAnalysisAssetAsync(Guid analysisId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/api/analysis/{analysisId}/asset", cancellationToken);
+        using var response = await SendAsync(
+            () => httpClient.GetAsync($"/api/analysis/{analysisId}/asset", cancellationToken),
+            cancellationToken);
         return await ReadFileAsync(response, cancellationToken);
+    }
+
+    private static async Task<HttpResponseMessage> SendAsync(
+        Func<Task<HttpResponseMessage>> send,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await send();
+        }
+        catch (HttpRequestException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new ApiGatewayClientException(
+                HttpStatusCode.BadGateway,
+                $"Nao foi possivel conectar ao ApiGateway. Verifique se o servico esta em execucao. Detalhes: {exception.Message}");
+        }
     }
 
     private static async Task<T?> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

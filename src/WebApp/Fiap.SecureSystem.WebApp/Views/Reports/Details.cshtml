@@ -1,7 +1,7 @@
 @model ReportDetailsViewModel
 
 @{
-    ViewData["Title"] = "Relatório";
+    ViewData["Title"] = "Relatorio";
 }
 
 @section Styles {
@@ -11,9 +11,9 @@
 <section class="report-page">
     <div class="report-header">
         <div>
-            <span class="page-label">Relatório técnico</span>
-            <h1>Resultado da análise</h1>
-            <p>Dados do relatório retornados pelo ApiGateway para a análise @Model.AnalysisId.</p>
+            <span class="page-label">Relatorio tecnico</span>
+            <h1>Resultado da analise</h1>
+            <p>Analise @Model.AnalysisId</p>
         </div>
 
         <div class="report-actions">
@@ -21,12 +21,19 @@
                 Voltar
             </a>
 
-            @if (Model.Files.Any(file => file.Format == "PDF"))
-            {
-                <a href="@Model.Files.First(file => file.Format == "PDF").DownloadUrl" class="app-btn app-btn-primary">
-                    Download PDF
-                </a>
-            }
+            <form asp-controller="Reports" asp-action="Download" method="get" class="report-download-form">
+                <input type="hidden" name="analysisId" value="@Model.AnalysisId" />
+
+                <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                    <option value="pdf">PDF</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="json">JSON</option>
+                </select>
+
+                <button type="submit" class="app-btn app-btn-primary">
+                    Baixar relatorio
+                </button>
+            </form>
         </div>
     </div>
 
@@ -41,45 +48,199 @@
         <div class="report-card summary-card">
             <span>Componentes</span>
             <strong>@Model.ComponentCount</strong>
-            <p>Itens encontrados no payload `analysisData`.</p>
+            <p>Elementos identificados no diagrama.</p>
         </div>
 
         <div class="report-card summary-card">
             <span>Riscos</span>
             <strong>@Model.RiskCount</strong>
-            <p>Entradas localizadas no payload do relatório.</p>
+            <p>Pontos de atencao arquitetural.</p>
         </div>
 
         <div class="report-card summary-card">
-            <span>Recomendações</span>
+            <span>Recomendacoes</span>
             <strong>@Model.RecommendationCount</strong>
-            <p>Itens mapeados automaticamente a partir do JSON retornado.</p>
+            <p>Acoes sugeridas para evoluir a arquitetura.</p>
         </div>
     </div>
 
     <div class="report-content">
-        <div class="report-card">
-            <h2>Resumo executivo</h2>
-            <p>Este layout foi mantido e agora recebe dados reais do ApiGateway. A apresentação detalhada do relatório pode evoluir depois sem alterar o client HTTP.</p>
-        </div>
+        <div class="report-card report-visual-card">
+            <div>
+                <h2>Imagem enviada</h2>
+                <p>Diagrama original usado como entrada da analise.</p>
+            </div>
 
-        <div class="report-card">
-            <h2>Arquivos gerados</h2>
-
-            @if (Model.Files.Count == 0)
+            @if (!string.IsNullOrWhiteSpace(Model.AssetDownloadUrl))
             {
-                <p>Nenhum arquivo associado foi retornado.</p>
+                <div class="submitted-image-frame">
+                    <img src="@Model.AssetDownloadUrl" alt="Diagrama enviado para analise" />
+                </div>
             }
             else
             {
-                <div class="report-list">
-                    @foreach (var file in Model.Files)
+                <p>Nao foi possivel localizar a imagem enviada.</p>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Resumo executivo</h2>
+            <p>@Model.SummaryOverview</p>
+
+            <div class="review-line @(Model.RequiresManualReview ? "review-needed" : "review-ok")">
+                <strong>Revisao manual:</strong>
+                <span>@(Model.RequiresManualReview ? "recomendada" : "nao indicada")</span>
+            </div>
+
+            @if (Model.Warnings.Count > 0)
+            {
+                <ul class="detail-list">
+                    @foreach (var warning in Model.Warnings)
                     {
-                        <div class="report-item">
-                            <strong>@file.FileName</strong>
-                            <span>@file.Format • @file.ContentType • gerado em @file.GeneratedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
-                            <a href="@file.DownloadUrl" class="link mt-2">Baixar →</a>
-                        </div>
+                        <li>@warning</li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Componentes</h2>
+
+            @if (Model.Components.Count == 0)
+            {
+                <p>Nenhum componente foi identificado.</p>
+            }
+            else
+            {
+                <div class="component-grid">
+                    @foreach (var component in Model.Components)
+                    {
+                        <article class="detail-item">
+                            <div class="detail-item-header">
+                                <div>
+                                    <span>@component.Type</span>
+                                    <h3>@component.Name</h3>
+                                </div>
+                                <code>@component.Id</code>
+                            </div>
+
+                            <p>@component.Description</p>
+
+                            @if (component.Tags.Count > 0)
+                            {
+                                <div class="tag-row">
+                                    @foreach (var tag in component.Tags)
+                                    {
+                                        <span>@tag</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (component.ConnectedTo.Count > 0)
+                            {
+                                <h4>Conexoes</h4>
+                                <ul class="detail-list">
+                                    @foreach (var connection in component.ConnectedTo)
+                                    {
+                                        <li>@connection</li>
+                                    }
+                                </ul>
+                            }
+
+                            @if (component.Metadata.Count > 0)
+                            {
+                                <h4>Metadados</h4>
+                                <dl class="metadata-list">
+                                    @foreach (var item in component.Metadata)
+                                    {
+                                        <dt>@item.Key</dt>
+                                        <dd>@item.Value</dd>
+                                    }
+                                </dl>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Riscos</h2>
+
+            @if (Model.Risks.Count == 0)
+            {
+                <p>Nenhum risco arquitetural foi identificado.</p>
+            }
+            else
+            {
+                <div class="risk-list">
+                    @foreach (var risk in Model.Risks)
+                    {
+                        <article class="risk-item @risk.SeverityCssClass">
+                            <span>@risk.Severity</span>
+                            <div>
+                                <h3>@risk.Title</h3>
+                                <p>@risk.Description</p>
+
+                                <div class="fact-grid">
+                                    <div><strong>Componente</strong><span>@(string.IsNullOrWhiteSpace(risk.AffectedComponentName) ? risk.AffectedComponentId : risk.AffectedComponentName)</span></div>
+                                    <div><strong>Impacto</strong><span>@risk.Impact</span></div>
+                                    <div><strong>Probabilidade</strong><span>@risk.Likelihood</span></div>
+                                </div>
+
+                                @if (risk.Evidence.Count > 0)
+                                {
+                                    <h4>Evidencias</h4>
+                                    <ul class="detail-list">
+                                        @foreach (var evidence in risk.Evidence)
+                                        {
+                                            <li>@evidence</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Recomendacoes</h2>
+
+            @if (Model.Recommendations.Count == 0)
+            {
+                <p>Nenhuma recomendacao foi identificada.</p>
+            }
+            else
+            {
+                <div class="risk-list">
+                    @foreach (var recommendation in Model.Recommendations)
+                    {
+                        <article class="risk-item @recommendation.PriorityCssClass">
+                            <span>@recommendation.Priority</span>
+                            <div>
+                                <h3>@recommendation.Title</h3>
+                                <p>@recommendation.Description</p>
+
+                                <div class="fact-grid">
+                                    <div><strong>Categoria</strong><span>@recommendation.Category</span></div>
+                                    <div><strong>Risco relacionado</strong><span>@recommendation.RelatedRiskId</span></div>
+                                    <div><strong>Componente alvo</strong><span>@recommendation.TargetComponentId</span></div>
+                                </div>
+
+                                @if (recommendation.ExpectedBenefits.Count > 0)
+                                {
+                                    <h4>Beneficios esperados</h4>
+                                    <ul class="detail-list">
+                                        @foreach (var benefit in recommendation.ExpectedBenefits)
+                                        {
+                                            <li>@benefit</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </article>
                     }
                 </div>
             }
@@ -87,36 +248,11 @@
 
         <div class="report-card">
             <h2>Metadados</h2>
-            <div class="risk-list">
-                <div class="risk-item medium">
-                    <span>ID</span>
-                    <div>
-                        <strong>@Model.ReportId</strong>
-                        <p>Identificador do relatório retornado pelo gateway.</p>
-                    </div>
-                </div>
-
-                <div class="risk-item low">
-                    <span>Criado</span>
-                    <div>
-                        <strong>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
-                        <p>Data de criação do relatório.</p>
-                    </div>
-                </div>
-
-                <div class="risk-item low">
-                    <span>Atualizado</span>
-                    <div>
-                        <strong>@Model.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
-                        <p>Última atualização do relatório.</p>
-                    </div>
-                </div>
+            <div class="fact-grid">
+                <div><strong>ID</strong><span>@Model.ReportId</span></div>
+                <div><strong>Criado</strong><span>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                <div><strong>Atualizado</strong><span>@Model.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
             </div>
-        </div>
-
-        <div class="report-card">
-            <h2>Payload bruto</h2>
-            <pre class="mb-0"><code>@Model.AnalysisDataJson</code></pre>
         </div>
     </div>
 </section>

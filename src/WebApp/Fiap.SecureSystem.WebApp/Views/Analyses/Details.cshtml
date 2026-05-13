@@ -1,7 +1,7 @@
 @model AnalysisDetailsViewModel
 
 @{
-    ViewData["Title"] = "Detalhes da Análise";
+    ViewData["Title"] = "Detalhes da Analise";
 }
 
 @section Styles {
@@ -11,7 +11,7 @@
 <section class="analysis-details">
     <div class="details-header">
         <div>
-            <span class="page-label">Análise</span>
+            <span class="page-label">Analise</span>
             <h1>@Model.FileName</h1>
             <p>ID: @Model.Id</p>
         </div>
@@ -26,7 +26,7 @@
 
         <div class="timeline">
             <div class="timeline-step done">
-                <span>✓</span>
+                <span>OK</span>
                 <div>
                     <strong>Recebido</strong>
                     <p>Arquivo enviado em @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
@@ -34,7 +34,7 @@
             </div>
 
             <div class="timeline-step @(Model.StatusCssClass == "processing" ? "active" : "done")">
-                <span>⏳</span>
+                <span>...</span>
                 <div>
                     <strong>Processando</strong>
                     <p>@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "IA analisando o diagrama")</p>
@@ -42,13 +42,13 @@
             </div>
 
             <div class="timeline-step @(Model.StatusCssClass == "completed" ? "done" : string.Empty)">
-                <span>✓</span>
+                <span>OK</span>
                 <div>
                     <strong>Analisado</strong>
                     <p>
                         @if (Model.CompletedAtUtc.HasValue)
                         {
-                            @:Concluído em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            @:Concluido em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                         }
                         else if (Model.FailedAtUtc.HasValue)
                         {
@@ -56,7 +56,7 @@
                         }
                         else
                         {
-                            @:Aguardando conclusão
+                            @:Aguardando conclusao
                         }
                     </p>
                 </div>
@@ -66,7 +66,7 @@
 
     <div class="info-grid">
         <div class="info-card">
-            <h3>Informações</h3>
+            <h3>Informacoes</h3>
             <ul>
                 <li><strong>Tipo:</strong> @Model.ContentType</li>
                 <li><strong>Tamanho:</strong> @((Model.SizeInBytes / 1024d / 1024d).ToString("0.00")) MB</li>
@@ -86,27 +86,45 @@
     </div>
 
     <div class="report-card">
-        <h2>Relatório</h2>
+        <h2>Relatorio</h2>
 
         @if (Model.HasReport)
         {
-            <p>Relatório disponível para consulta e download.</p>
+            <p>Relatorio disponivel para consulta e download.</p>
 
-            <div class="d-flex gap-2 flex-wrap">
+            @if (TempData["DownloadReportError"] is string downloadReportError)
+            {
+                <div class="alert alert-warning" role="alert">
+                    @downloadReportError
+                </div>
+            }
+
+            <div class="report-actions">
                 <a href="@Model.ReportDetailsUrl" class="app-btn app-btn-secondary">
-                    Ver relatório
+                    Ver relatorio
                 </a>
-                <a href="@Model.ReportDownloadUrl" class="app-btn app-btn-primary">
-                    Baixar relatório
-                </a>
+
+                <form asp-controller="Analyses" asp-action="DownloadReport" method="get" class="report-download-form">
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                        <option value="pdf">PDF</option>
+                        <option value="markdown">Markdown</option>
+                        <option value="json">JSON</option>
+                    </select>
+
+                    <button type="submit" class="app-btn app-btn-primary">
+                        Baixar relatorio
+                    </button>
+                </form>
             </div>
         }
         else
         {
-            <p>Disponível após a conclusão da análise.</p>
+            <p>Disponivel apos a conclusao da analise.</p>
 
             <button class="app-btn app-btn-primary" disabled>
-                Baixar relatório
+                Baixar relatorio
             </button>
         }
     </div>

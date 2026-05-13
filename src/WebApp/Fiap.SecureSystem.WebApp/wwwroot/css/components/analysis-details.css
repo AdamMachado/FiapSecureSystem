@@ -74,3 +74,27 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+.report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.report-download-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.report-format-select {
+    min-height: 44px;
+    min-width: 148px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(5, 7, 13, 0.56);
+    color: var(--text);
+    padding: 0 40px 0 14px;
+}
