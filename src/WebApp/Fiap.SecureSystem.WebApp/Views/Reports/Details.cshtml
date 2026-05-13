@@ -247,28 +247,6 @@
         </div>
 
         <div class="report-card">
-            <h2>Arquivos gerados</h2>
-
-            @if (Model.Files.Count == 0)
-            {
-                <p>Nenhum arquivo associado foi retornado.</p>
-            }
-            else
-            {
-                <div class="report-list">
-                    @foreach (var file in Model.Files)
-                    {
-                        <div class="report-item">
-                            <strong>@file.FileName</strong>
-                            <span>@file.Format - @file.ContentType - gerado em @file.GeneratedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
-                            <a href="@file.DownloadUrl" class="link mt-2">Baixar</a>
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-
-        <div class="report-card">
             <h2>Metadados</h2>
             <div class="fact-grid">
                 <div><strong>ID</strong><span>@Model.ReportId</span></div>
