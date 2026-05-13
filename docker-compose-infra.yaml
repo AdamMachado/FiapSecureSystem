@@ -96,15 +96,32 @@ services:
     networks:
       - soat-net
 
+  rabbitmq-cookie-init:
+    image: busybox:latest
+    command: >
+      sh -c "
+      mkdir -p /var/lib/rabbitmq &&
+      printf '%s' '${RABBITMQ_ERLANG_COOKIE}' > /var/lib/rabbitmq/.erlang.cookie &&
+      chown -R 999:999 /var/lib/rabbitmq &&
+      chmod 700 /var/lib/rabbitmq &&
+      chmod 600 /var/lib/rabbitmq/.erlang.cookie
+      "
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: "no"
+    networks:
+      - soat-net
+  
   rabbitmq:
     container_name: fiapsecure-rabbitmq
-    image: rabbitmq:3.13-management
+    hostname: rabbitmq
+    image: rabbitmq:3.13.7-management
     restart: unless-stopped
     environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
       RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE}
     ports:
       - "${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT}:15672"
@@ -114,12 +131,15 @@ services:
       test:
         [
           "CMD-SHELL",
-          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 15672"
+          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 5672 && rabbitmq-diagnostics -q check_port_listener 15672"
         ]
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 50s
+      start_period: 30s
+    depends_on:
+      rabbitmq-cookie-init:
+        condition: service_completed_successfully
     networks:
       - soat-net
 
@@ -138,7 +158,7 @@ services:
     volumes:
       - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
     entrypoint: ["/bin/sh", "/init-rabbitmq.sh"]
-    restart: "no"
+    restart: on-failure
     networks:
       - soat-net
 
