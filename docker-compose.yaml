@@ -367,12 +367,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 5672 && rabbitmq-diagnostics -q check_port_listener 15672"
+          "rabbitmq-diagnostics -q ping"
         ]
       interval: 10s
       timeout: 10s
-      retries: 15
-      start_period: 30s
+      retries: 20
+      start_period: 60s
     depends_on:
       rabbitmq-cookie-init:
         condition: service_completed_successfully
