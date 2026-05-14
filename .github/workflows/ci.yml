@@ -92,7 +92,25 @@ jobs:
         run: docker compose up -d --build
 
       - name: Show running containers
-        run: docker compose ps
+        if: always()
+        run: |
+          echo "---- Docker Compose services ----"
+          docker compose ps -a
+
+      - name: Dump RabbitMQ diagnostics
+        if: always()
+        run: |
+          echo "---- RabbitMQ health inspect ----"
+          docker inspect fiapsecure-rabbitmq --format='{{json .State.Health}}' || true
+
+          echo "---- RabbitMQ logs ----"
+          docker logs fiapsecure-rabbitmq || true
+
+          echo "---- RabbitMQ cookie init logs ----"
+          docker logs fiapsecure-rabbitmq-cookie-init || true
+
+          echo "---- RabbitMQ init logs ----"
+          docker logs fiapsecure-rabbitmq-init || true
 
       - name: Stop local stack
         if: always()
