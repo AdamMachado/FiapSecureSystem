@@ -14,7 +14,7 @@ using UploadService.Application.UseCases.ListUserAnalysisRequests;
 namespace UploadService.Api.Controllers;
 
 [ApiController]
-[Route("api/analyses")]
+[Route("api/analysis")]
 [Produces("application/json")]
 public sealed class AnalysesController : ControllerBase
 {
@@ -188,7 +188,10 @@ public sealed class AnalysesController : ControllerBase
         if (result.IsFailure)
             return result.ToProblemHttpResult();
 
-        return Results.File(result.Value.Content, result.Value.ContentType);
+        return Results.File(
+            result.Value.Content,
+            result.Value.ContentType,
+            fileDownloadName: result.Value.FileName);
     }
 
     private static async Task<string> ComputeSha256Async(Stream stream, CancellationToken cancellationToken)

@@ -1,8 +1,65 @@
 name: fiap-secure-systems
 
 services:
+  web-app:
+    container_name: FSS-web-app
+    build:
+      context: .
+      dockerfile: src/WebApp/Fiap.SecureSystem.WebApp/Dockerfile
+    image: web-app:local
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "${WEB_APP_PORT}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+
+      ApiGateway__BaseUrl: http://api-gateway:8080
+
+      OpenTelemetry__ServiceName: SOAT.WebApp
+      OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    networks:
+      - soat-net
+  
+  api-gateway:
+    container_name: FSS-api-gateway
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Fiap.SecureSystem.ApiGateway/Dockerfile
+    image: api-gateway:local
+    restart: unless-stopped
+    depends_on:
+      uploadservice-api:
+        condition: service_healthy
+      reportservice-api:
+        condition: service_healthy
+    ports:
+      - "${API_GATEWAY_PORT}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+
+      ExternalServices__UploadService__BaseUrl: http://uploadservice-api:8080
+      ExternalServices__ReportService__BaseUrl: http://reportservice-api:8080
+
+      OpenTelemetry__ServiceName: SOAT.ApiGateway
+      OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - soat-net
+  
   uploadservice-api:
-    container_name: uploadservice-api
+    container_name: FSS-uploadservice-api
     build:
       context: .
       dockerfile: src/Services/UploadService/UploadService.Api/Dockerfile
@@ -27,7 +84,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -57,11 +114,17 @@ services:
       OpenTelemetry__ServiceName: SOAT.UploadService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - soat-net
  
   reportservice-api:
-    container_name: reportservice-api
+    container_name: FSS-reportservice-api
     build:
       context: .
       dockerfile: src/Services/ReportService/ReportService.Api/Dockerfile
@@ -86,7 +149,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${REPORT_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -110,11 +173,17 @@ services:
       OpenTelemetry__ServiceName: SOAT.ReportService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - soat-net
 
   processingservice-worker:
-    container_name: processingservice-worker
+    container_name: FSS-processingservice-worker
     build:
       context: .
       dockerfile: src/Services/ProcessingService/ProcessingService.Worker/Dockerfile
@@ -137,7 +206,7 @@ services:
       DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
 
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
 
@@ -156,8 +225,8 @@ services:
       MinIo__UseSsl: ${MINIO_USE_SSL}
 
       OpenAI__ApiKey: ${OPENAI_API_KEY}
-      OpenAI__Model: gpt-4o
-      OpenAI__ServiceTier: auto
+      OpenAI__Model: ${OPENAI_MODEL}
+      OpenAI__ServiceTier: ${OPENAI_SERVICE_TIER}
 
       OpenTelemetry__ServiceName: SOAT.ProcessingService.Worker
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
@@ -215,9 +284,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${UPLOAD_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${UPLOAD_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
     networks:
       - soat-net
@@ -232,7 +303,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${REPORT_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${REPORT_DATABASE_SCHEMA}
       Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
@@ -251,23 +322,43 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      Database__ConnectionString: Host=postgres;Port=5432;Database=${PROCESSING_POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Database__Schema: ${PROCESSING_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     restart: "no"
     networks:
       - soat-net
 
+  rabbitmq-cookie-init:
+    container_name: fiapsecure-rabbitmq-cookie-init
+    image: busybox:latest
+    command: >
+      sh -c "
+      mkdir -p /var/lib/rabbitmq &&
+      printf '%s' '${RABBITMQ_ERLANG_COOKIE}' > /var/lib/rabbitmq/.erlang.cookie &&
+      chown -R 999:999 /var/lib/rabbitmq &&
+      chmod 700 /var/lib/rabbitmq &&
+      chmod 600 /var/lib/rabbitmq/.erlang.cookie
+      "
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: "no"
+    networks:
+      - soat-net
+  
   rabbitmq:
     container_name: fiapsecure-rabbitmq
-    image: rabbitmq:3.13-management
+    hostname: rabbitmq
+    image: rabbitmq:3.13.7-management
     restart: unless-stopped
     environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
       RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_ERLANG_COOKIE: "fiapsecure-static-cookie"
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE}
     ports:
       - "${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT}:15672"
@@ -277,12 +368,15 @@ services:
       test:
         [
           "CMD-SHELL",
-          "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 15672"
+          "rabbitmq-diagnostics -q ping"
         ]
       interval: 10s
       timeout: 10s
-      retries: 15
-      start_period: 50s
+      retries: 20
+      start_period: 60s
+    depends_on:
+      rabbitmq-cookie-init:
+        condition: service_completed_successfully
     networks:
       - soat-net
 
@@ -301,7 +395,7 @@ services:
     volumes:
       - ./deploy/rabbitmq/init-rabbitmq.sh:/init-rabbitmq.sh:ro
     entrypoint: ["/bin/sh", "/init-rabbitmq.sh"]
-    restart: "no"
+    restart: on-failure
     networks:
       - soat-net
 

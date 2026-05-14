@@ -1,0 +1,258 @@
+@model ReportDetailsViewModel
+
+@{
+    ViewData["Title"] = "Relatorio";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/report.css" asp-append-version="true" />
+}
+
+<section class="report-page">
+    <div class="report-header">
+        <div>
+            <span class="page-label">Relatorio tecnico</span>
+            <h1>Resultado da analise</h1>
+            <p>Analise @Model.AnalysisId</p>
+        </div>
+
+        <div class="report-actions">
+            <a asp-controller="Analyses" asp-action="Details" asp-route-id="@Model.AnalysisId" class="app-btn app-btn-secondary">
+                Voltar
+            </a>
+
+            <form asp-controller="Reports" asp-action="Download" method="get" class="report-download-form">
+                <input type="hidden" name="analysisId" value="@Model.AnalysisId" />
+
+                <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                    <option value="pdf">PDF</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="json">JSON</option>
+                </select>
+
+                <button type="submit" class="app-btn app-btn-primary">
+                    Baixar relatorio
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="report-grid">
+        <div class="report-card summary-card">
+            <span>Componentes</span>
+            <strong>@Model.ComponentCount</strong>
+            <p>Elementos identificados no diagrama.</p>
+        </div>
+
+        <div class="report-card summary-card">
+            <span>Riscos</span>
+            <strong>@Model.RiskCount</strong>
+            <p>Pontos de atencao arquitetural.</p>
+        </div>
+
+        <div class="report-card summary-card">
+            <span>Recomendacoes</span>
+            <strong>@Model.RecommendationCount</strong>
+            <p>Acoes sugeridas para evoluir a arquitetura.</p>
+        </div>
+    </div>
+
+    <div class="report-content">
+        <div class="report-card report-visual-card">
+            <div>
+                <h2>Imagem enviada</h2>
+                <p>Diagrama original usado como entrada da analise.</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.AssetDownloadUrl))
+            {
+                <div class="submitted-image-frame">
+                    <img src="@Model.AssetDownloadUrl" alt="Diagrama enviado para analise" />
+                </div>
+            }
+            else
+            {
+                <p>Nao foi possivel localizar a imagem enviada.</p>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Resumo executivo</h2>
+            <p>@Model.SummaryOverview</p>
+
+            <div class="review-line @(Model.RequiresManualReview ? "review-needed" : "review-ok")">
+                <strong>Revisao manual:</strong>
+                <span>@(Model.RequiresManualReview ? "recomendada" : "nao indicada")</span>
+            </div>
+
+            @if (Model.Warnings.Count > 0)
+            {
+                <ul class="detail-list">
+                    @foreach (var warning in Model.Warnings)
+                    {
+                        <li>@warning</li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Componentes</h2>
+
+            @if (Model.Components.Count == 0)
+            {
+                <p>Nenhum componente foi identificado.</p>
+            }
+            else
+            {
+                <div class="component-grid">
+                    @foreach (var component in Model.Components)
+                    {
+                        <article class="detail-item">
+                            <div class="detail-item-header">
+                                <div>
+                                    <span>@component.Type</span>
+                                    <h3>@component.Name</h3>
+                                </div>
+                                <code>@component.Id</code>
+                            </div>
+
+                            <p>@component.Description</p>
+
+                            @if (component.Tags.Count > 0)
+                            {
+                                <div class="tag-row">
+                                    @foreach (var tag in component.Tags)
+                                    {
+                                        <span>@tag</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (component.ConnectedTo.Count > 0)
+                            {
+                                <h4>Conexoes</h4>
+                                <ul class="detail-list">
+                                    @foreach (var connection in component.ConnectedTo)
+                                    {
+                                        <li>@connection</li>
+                                    }
+                                </ul>
+                            }
+
+                            @if (component.Metadata.Count > 0)
+                            {
+                                <h4>Metadados</h4>
+                                <dl class="metadata-list">
+                                    @foreach (var item in component.Metadata)
+                                    {
+                                        <dt>@item.Key</dt>
+                                        <dd>@item.Value</dd>
+                                    }
+                                </dl>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Riscos</h2>
+
+            @if (Model.Risks.Count == 0)
+            {
+                <p>Nenhum risco arquitetural foi identificado.</p>
+            }
+            else
+            {
+                <div class="risk-list">
+                    @foreach (var risk in Model.Risks)
+                    {
+                        <article class="risk-item @risk.SeverityCssClass">
+                            <span>@risk.Severity</span>
+                            <div>
+                                <h3>@risk.Title</h3>
+                                <p>@risk.Description</p>
+
+                                <div class="fact-grid">
+                                    <div><strong>Componente</strong><span>@(string.IsNullOrWhiteSpace(risk.AffectedComponentName) ? risk.AffectedComponentId : risk.AffectedComponentName)</span></div>
+                                    <div><strong>Impacto</strong><span>@risk.Impact</span></div>
+                                    <div><strong>Probabilidade</strong><span>@risk.Likelihood</span></div>
+                                </div>
+
+                                @if (risk.Evidence.Count > 0)
+                                {
+                                    <h4>Evidencias</h4>
+                                    <ul class="detail-list">
+                                        @foreach (var evidence in risk.Evidence)
+                                        {
+                                            <li>@evidence</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Recomendacoes</h2>
+
+            @if (Model.Recommendations.Count == 0)
+            {
+                <p>Nenhuma recomendacao foi identificada.</p>
+            }
+            else
+            {
+                <div class="risk-list">
+                    @foreach (var recommendation in Model.Recommendations)
+                    {
+                        <article class="risk-item @recommendation.PriorityCssClass">
+                            <span>@recommendation.Priority</span>
+                            <div>
+                                <h3>@recommendation.Title</h3>
+                                <p>@recommendation.Description</p>
+
+                                <div class="fact-grid">
+                                    <div><strong>Categoria</strong><span>@recommendation.Category</span></div>
+                                    <div><strong>Risco relacionado</strong><span>@recommendation.RelatedRiskId</span></div>
+                                    <div><strong>Componente alvo</strong><span>@recommendation.TargetComponentId</span></div>
+                                </div>
+
+                                @if (recommendation.ExpectedBenefits.Count > 0)
+                                {
+                                    <h4>Beneficios esperados</h4>
+                                    <ul class="detail-list">
+                                        @foreach (var benefit in recommendation.ExpectedBenefits)
+                                        {
+                                            <li>@benefit</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="report-card">
+            <h2>Metadados</h2>
+            <div class="fact-grid">
+                <div><strong>ID</strong><span>@Model.ReportId</span></div>
+                <div><strong>Criado</strong><span>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                <div><strong>Atualizado</strong><span>@Model.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+            </div>
+        </div>
+    </div>
+</section>

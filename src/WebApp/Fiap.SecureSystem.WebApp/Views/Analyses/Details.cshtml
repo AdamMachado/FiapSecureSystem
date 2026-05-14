@@ -1,0 +1,141 @@
+@model AnalysisDetailsViewModel
+
+@{
+    ViewData["Title"] = "Detalhes da Analise";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/analysis-details.css" asp-append-version="true" />
+}
+
+<section class="analysis-details">
+    <div class="details-header">
+        <div>
+            <span class="page-label">Analise</span>
+            <h1>@Model.FileName</h1>
+            <p>ID: @Model.Id</p>
+        </div>
+
+        <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <div class="timeline-card">
+        <h2>Status do processamento</h2>
+
+        <div class="timeline">
+            <div class="timeline-step done">
+                <span>OK</span>
+                <div>
+                    <strong>Recebido</strong>
+                    <p>Arquivo enviado em @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+            </div>
+
+            <div class="timeline-step @(Model.StatusCssClass == "processing" ? "active" : "done")">
+                <span>...</span>
+                <div>
+                    <strong>Processando</strong>
+                    <p>@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "IA analisando o diagrama")</p>
+                </div>
+            </div>
+
+            <div class="timeline-step @(Model.StatusCssClass == "completed" ? "done" : string.Empty)">
+                <span>OK</span>
+                <div>
+                    <strong>Analisado</strong>
+                    <p>
+                        @if (Model.CompletedAtUtc.HasValue)
+                        {
+                            @:Concluido em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
+                        else if (Model.FailedAtUtc.HasValue)
+                        {
+                            @:Falhou em @Model.FailedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
+                        else
+                        {
+                            @:Aguardando conclusao
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-card">
+            <h3>Informacoes</h3>
+            <ul>
+                <li><strong>Tipo:</strong> @Model.ContentType</li>
+                <li><strong>Tamanho:</strong> @((Model.SizeInBytes / 1024d / 1024d).ToString("0.00")) MB</li>
+                <li><strong>Enviado em:</strong> @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</li>
+                <li><strong>Atualizado em:</strong> @Model.UpdatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</li>
+            </ul>
+        </div>
+
+        <div class="info-card">
+            <h3>Status</h3>
+            <span class="status-pill @Model.StatusCssClass">@Model.Status</span>
+            @if (!string.IsNullOrWhiteSpace(Model.FailureReason))
+            {
+                <p class="mt-3 mb-0">@Model.FailureReason</p>
+            }
+        </div>
+    </div>
+
+    <div class="report-card">
+        <h2>Relatorio</h2>
+
+        @if (Model.HasReport)
+        {
+            <p>Relatorio disponivel para consulta e download.</p>
+
+            @if (TempData["DownloadReportError"] is string downloadReportError)
+            {
+                <div class="alert alert-warning" role="alert">
+                    @downloadReportError
+                </div>
+            }
+
+            <div class="report-actions">
+                <a href="@Model.ReportDetailsUrl" class="app-btn app-btn-secondary">
+                    Ver relatorio
+                </a>
+
+                <form asp-controller="Analyses" asp-action="DownloadReport" method="get" class="report-download-form">
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                        <option value="pdf">PDF</option>
+                        <option value="markdown">Markdown</option>
+                        <option value="json">JSON</option>
+                    </select>
+
+                    <button type="submit" class="app-btn app-btn-primary">
+                        Baixar relatorio
+                    </button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <p>Disponivel apos a conclusao da analise.</p>
+
+            <button class="app-btn app-btn-primary" disabled>
+                Baixar relatorio
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.AssetDownloadUrl))
+    {
+        <div class="report-card">
+            <h2>Arquivo original</h2>
+            <a href="@Model.AssetDownloadUrl" class="app-btn app-btn-secondary">
+                Baixar diagrama enviado
+            </a>
+        </div>
+    }
+</section>

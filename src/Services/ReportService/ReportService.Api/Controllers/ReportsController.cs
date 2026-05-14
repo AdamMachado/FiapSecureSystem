@@ -7,8 +7,7 @@ using ReportService.Domain.Enums;
 namespace ReportService.Api.Controllers;
 
 [ApiController]
-[Route("reports")]
-[Route("api/reports")]
+[Route("api/report")]
 public sealed class ReportsController : ControllerBase
 {
     [HttpGet("by-analysis/{analysisId:guid}")]
