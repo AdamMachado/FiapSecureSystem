@@ -1,11 +1,33 @@
 .upload-page {
-    padding: 2rem 0 3rem 0;
+    padding: .5rem 0 3rem 0;
 }
 
 .upload-header {
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 32px;
+    gap: 24px;
+    margin-bottom: 1.2rem;
+}
+
+.page-label {
+    color: var(--primary-light);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.upload-header h1 {
+    margin: 6px 0 3px;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 850;
+    letter-spacing: -0.04em;
+}
+
+.upload-header p {
+    margin: 0;
+    color: var(--text-secondary);
 }
 
 .upload-card {

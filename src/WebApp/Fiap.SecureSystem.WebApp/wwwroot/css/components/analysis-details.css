@@ -1,12 +1,39 @@
 .analysis-details {
-    padding: 2rem 0 3rem 0;
+    padding: .5rem 0 3rem 0;
+    overflow: hidden;
 }
 
 .details-header {
-    display: flex;
-    justify-content: space-between;
+    display: flex-block;
     align-items: flex-start;
-    margin-bottom: 32px;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 1.2rem;
+    width: 100%;
+}
+
+.page-label {
+    color: var(--primary-light);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.details-header h1 {
+    display: inline-block;
+    margin: 6px 0 3px;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 850;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+    width: 100%;
+    overflow: hidden;
+}
+
+.details-header p {
+    margin: 0;
+    color: var(--text-secondary);
 }
 
 .timeline-card,
@@ -103,9 +130,9 @@
         background: rgba(239, 68, 68, 0.14);
     }
 
-.analysis-failure-reason-hidden {
+/*.analysis-failure-reason-hidden {
     display: none;
-}
+}*/
 
 .report-card button:disabled {
     opacity: 0.4;

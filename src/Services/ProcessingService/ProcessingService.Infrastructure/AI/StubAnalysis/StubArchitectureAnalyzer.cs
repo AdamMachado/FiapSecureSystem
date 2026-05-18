@@ -21,7 +21,7 @@ public sealed class StubArchitectureAnalyzer : IArchitectureAnalyzer
         return diagramType is DiagramType.Pdf or DiagramType.Image;
     }
 
-    public Task<ArchitectureAnalysisResult> AnalyzeAsync(
+    public async Task<ArchitectureAnalysisResult> AnalyzeAsync(
         ArchitectureAnalysisRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -38,9 +38,10 @@ public sealed class StubArchitectureAnalyzer : IArchitectureAnalyzer
 
         var result = CreateFakeResult(request);
 
-        Thread.Sleep(15000);
+        await Task.Delay(15000, cancellationToken);
 
-        return Task.FromResult(result);
+        //return Task.FromResult(result);
+        return result;
     }
 
     private static ArchitectureAnalysisResult CreateFakeResult(ArchitectureAnalysisRequest request)

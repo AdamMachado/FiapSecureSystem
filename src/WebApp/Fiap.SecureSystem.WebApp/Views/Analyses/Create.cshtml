@@ -8,7 +8,13 @@
     <link rel="stylesheet" href="~/css/components/upload.css" asp-append-version="true" />
 }
 
+<nav class="path-section"> 
+    <a asp-controller="Home" asp-action="Dashboard">Dashboard</a>
+    <a href="javascript:" class="current">Upload</a>
+</nav>
+
 <section class="upload-page">
+
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
@@ -19,7 +25,7 @@
     <div class="upload-header">
         <div>
             <span class="page-label">Nova análise</span>
-            <h1>Enviar diagrama</h1>
+            <h1>Enviar Diagrama</h1>
             <p>Envie um PDF, PNG ou JPEG para análise automática.</p>
         </div>
     </div>
@@ -47,7 +53,7 @@
 
         <div class="upload-actions">
             <button type="submit" class="app-btn app-btn-primary" id="submitButton">
-                Enviar para análise
+                Enviar para Análise
             </button>
         </div>
     </form>

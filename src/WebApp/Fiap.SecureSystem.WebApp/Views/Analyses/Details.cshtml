@@ -2,7 +2,7 @@
 @model AnalysisDetailsViewModel
 
 @{
-    ViewData["Title"] = "Detalhes da Analise";
+    ViewData["Title"] = "Detalhes da Análise";
 
     var analysisPayload = JsonSerializer.Serialize(
         Model,
@@ -13,13 +13,18 @@
     <link rel="stylesheet" href="~/css/components/analysis-details.css" asp-append-version="true" />
 }
 
+<nav class="path-section">
+    <a asp-controller="Home" asp-action="Dashboard">Dashboard</a>
+    <a href="javascript:" class="current">Análise</a>
+</nav>
+
 <section
     class="analysis-details"
     id="analysis-details-root"
     data-status-url="@Url.Action("DetailsStatus", "Analyses", new { id = Model.Id })">
     <div class="details-header">
         <div>
-            <span class="page-label">Analise</span>
+            <span class="page-label">Análise</span>
             <h1 id="analysis-file-name">@Model.FileName</h1>
             <p>ID: <span id="analysis-id">@Model.Id</span></p>
         </div>
@@ -41,7 +46,7 @@
                 <span><i class="fa-solid fa-spinner"></i></span>
                 <div>
                     <strong>Processando</strong>
-                    <p id="timeline-processing-text">@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "IA analisando o diagrama")</p>
+                    <p id="timeline-processing-text">@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "Análise do diagrama em andamento")</p>
                 </div>
             </div>
 
@@ -52,7 +57,7 @@
                     <p id="timeline-finished-text">
                         @if (Model.CompletedAtUtc.HasValue)
                         {
-                            @:Concluido em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            @:Concluído em @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                         }
                         else if (Model.FailedAtUtc.HasValue)
                         {
@@ -60,7 +65,7 @@
                         }
                         else
                         {
-                            @:Aguardando conclusao
+                            @:Aguardando conclusão
                         }
                     </p>
                 </div>
@@ -70,7 +75,7 @@
 
     <div class="info-grid">
         <div class="info-card">
-            <h3>Informacoes</h3>
+            <h3>Informações</h3>
             <ul>
                 <li><strong>Tipo:</strong> <span id="analysis-content-type">@Model.ContentType</span></li>
                 <li><strong>Tamanho:</strong> <span id="analysis-size">@((Model.SizeInBytes / 1024d / 1024d).ToString("0.00")) MB</span></li>
@@ -82,16 +87,25 @@
         <div class="info-card">
             <h3>Status</h3>
             <span class="status-pill @Model.StatusCssClass" id="analysis-status-pill">@Model.Status</span>
-            <p class="mt-3 mb-0 @(string.IsNullOrWhiteSpace(Model.FailureReason) ? "analysis-failure-reason-hidden" : string.Empty)" id="analysis-failure-reason">@Model.FailureReason</p>
+            <p class="mt-3 mb-0" id="analysis-failure-reason">
+                @if(Model.StatusCode == "completed")
+                {
+                    <span>Análise concluída com sucesso</span>
+                }
+                else
+                {
+                    @Model.FailureReason
+                }
+            </p>
         </div>
     </div>
 
     <div class="report-card" id="analysis-report-card">
-        <h2>Relatorio</h2>
+        <h2>Relatório</h2>
 
         @if (Model.HasReport)
         {
-            <p id="analysis-report-description">Relatorio disponivel para consulta e download.</p>
+            <p id="analysis-report-description">Relatório disponível para consulta e download.</p>
 
             @if (TempData["DownloadReportError"] is string downloadReportError)
             {
@@ -102,31 +116,31 @@
 
             <div class="report-actions" id="analysis-report-actions">
                 <a href="@Model.ReportDetailsUrl" class="app-btn app-btn-secondary" id="analysis-report-link">
-                    Ver relatorio
+                    Ver Relatório
                 </a>
 
                 <form asp-controller="Analyses" asp-action="DownloadReport" method="get" class="report-download-form" id="analysis-report-download-form">
                     <input type="hidden" name="id" value="@Model.Id" />
 
-                    <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                    <select name="format" class="report-format-select" aria-label="Formato do relatório">
                         <option value="pdf">PDF</option>
                         <option value="markdown">Markdown</option>
                         <option value="json">JSON</option>
                     </select>
 
                     <button type="submit" class="app-btn app-btn-primary">
-                        Baixar relatorio
+                        Baixar Relatório
                     </button>
                 </form>
             </div>
         }
         else
         {
-            <p id="analysis-report-description">Disponivel apos a conclusao da analise.</p>
+            <p id="analysis-report-description">Disponível após a conclusão da análise.</p>
 
             <div class="report-actions" id="analysis-report-actions">
                 <button class="app-btn app-btn-primary" disabled id="analysis-report-disabled-button">
-                    Baixar relatorio
+                    Baixar Relatório
                 </button>
             </div>
         }
@@ -224,36 +238,36 @@
                     return `Processamento iniciado em ${formatDate(model.startedAtUtc)}`;
                 }
 
-                return "IA analisando o diagrama";
+                return "Análise do diagrama em andamento";
             }
 
             function buildFinishedText(model) {
                 if (model.completedAtUtc) {
-                    return `Concluido em ${formatDate(model.completedAtUtc)}`;
+                    return `Concluído em ${formatDate(model.completedAtUtc)}`;
                 }
 
                 if (model.failedAtUtc) {
                     return `Falhou em ${formatDate(model.failedAtUtc)}`;
                 }
 
-                return "Aguardando conclusao";
+                return "Aguardando conclusão";
             }
 
             function buildReportActions(model) {
                 if (model.hasReport && model.reportDetailsUrl && model.reportDownloadUrl) {
                     return `
                         <a href="${escapeHtml(model.reportDetailsUrl)}" class="app-btn app-btn-secondary" id="analysis-report-link">
-                            Ver relatorio
+                            Ver Relatório
                         </a>
                         <form action="${escapeHtml(model.reportDownloadUrl)}" method="get" class="report-download-form" id="analysis-report-download-form">
                             <input type="hidden" name="id" value="${escapeHtml(model.id)}" />
-                            <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                            <select name="format" class="report-format-select" aria-label="Formato do Relatório">
                                 <option value="pdf">PDF</option>
                                 <option value="markdown">Markdown</option>
                                 <option value="json">JSON</option>
                             </select>
                             <button type="submit" class="app-btn app-btn-primary">
-                                Baixar relatorio
+                                Baixar Relatório
                             </button>
                         </form>
                     `;
@@ -261,7 +275,7 @@
 
                 return `
                     <button class="app-btn app-btn-primary" disabled id="analysis-report-disabled-button">
-                        Baixar relatorio
+                        Baixar Relatório
                     </button>
                 `;
             }
@@ -294,9 +308,11 @@
                     elements.statusPill.textContent = model.status ?? "";
                 }
 
-                if (elements.failureReason) {
+                if(model.statusCode == "completed"){
+                    elements.failureReason.textContent = "Análise concluída com sucesso.";
+                }
+                else if (elements.failureReason) {
                     elements.failureReason.textContent = model.failureReason ?? "";
-                    elements.failureReason.classList.toggle("analysis-failure-reason-hidden", !model.failureReason);
                 }
 
                 if (elements.processingStep) {
@@ -321,8 +337,8 @@
 
                 if (elements.reportDescription) {
                     elements.reportDescription.textContent = model.hasReport
-                        ? "Relatorio disponivel para consulta e download."
-                        : "Disponivel apos a conclusao da analise.";
+                        ? "Relatório disponível para consulta e download."
+                        : "Disponível após a conclusão da análise.";
                 }
 
                 if (elements.reportActions) {

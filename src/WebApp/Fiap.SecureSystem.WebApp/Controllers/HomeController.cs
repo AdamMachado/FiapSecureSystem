@@ -14,7 +14,7 @@ public class HomeController(IApiGatewayClient apiGatewayClient) : Controller
         return View();
     }
 
-    [HttpGet("/dashboard")]
+    [HttpGet("/Dashboard")]
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
         try

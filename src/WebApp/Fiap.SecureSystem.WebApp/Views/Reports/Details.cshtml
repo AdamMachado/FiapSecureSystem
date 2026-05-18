@@ -8,26 +8,39 @@
     <link rel="stylesheet" href="~/css/components/report.css" asp-append-version="true" />
 }
 
+<nav class="path-section">
+    <a asp-controller="Home" 
+       asp-action="Dashboard">
+       Dashboard
+   </a>
+    <a asp-controller="Analyses" 
+       asp-action="Details" 
+       asp-route-id="@Model.AnalysisId">
+       Análise
+   </a>
+    <a href="javascript:" class="current">Relatório</a>
+</nav>
+
 <section class="report-page">
     <div class="report-header">
         <div>
-            <span class="page-label">Relatorio tecnico</span>
-            <h1>Resultado da analise</h1>
-            <p>Analise @Model.AnalysisId</p>
+            <span class="page-label">Relatório técnico</span>
+            <h1>Resultado da análise</h1>
+            <p>Análise ID: @Model.AnalysisId</p>
         </div>
 
         <div class="report-actions">
             <form asp-controller="Reports" asp-action="Download" method="get" class="report-download-form">
                 <input type="hidden" name="analysisId" value="@Model.AnalysisId" />
 
-                <select name="format" class="report-format-select" aria-label="Formato do relatorio">
+                <select name="format" class="report-format-select" aria-label="Formato do relatório">
                     <option value="pdf">PDF</option>
                     <option value="markdown">Markdown</option>
                     <option value="json">JSON</option>
                 </select>
 
                 <button type="submit" class="app-btn app-btn-primary">
-                    Baixar relatorio
+                    Baixar relatório
                 </button>
             </form>
         </div>
@@ -50,13 +63,13 @@
         <div class="report-card summary-card">
             <span>Riscos</span>
             <strong>@Model.RiskCount</strong>
-            <p>Pontos de atencao arquitetural.</p>
+            <p>Pontos de atenção arquitetural.</p>
         </div>
 
         <div class="report-card summary-card">
-            <span>Recomendacoes</span>
+            <span>Recomendações</span>
             <strong>@Model.RecommendationCount</strong>
-            <p>Acoes sugeridas para evoluir a arquitetura.</p>
+            <p>Ações sugeridas para evoluir a arquitetura.</p>
         </div>
     </div>
 
@@ -64,18 +77,18 @@
         <div class="report-card report-visual-card">
             <div>
                 <h2>Imagem enviada</h2>
-                <p>Diagrama original usado como entrada da analise.</p>
+                <p>Diagrama original usado como entrada da análise.</p>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(Model.AssetDownloadUrl))
             {
                 <div class="submitted-image-frame">
-                    <img src="@Model.AssetDownloadUrl" alt="Diagrama enviado para analise" />
+                    <img src="@Model.AssetDownloadUrl" alt="Diagrama enviado para análise" />
                 </div>
             }
             else
             {
-                <p>Nao foi possivel localizar a imagem enviada.</p>
+                <p>Não foi possível localizar a imagem enviada.</p>
             }
         </div>
 
@@ -84,8 +97,8 @@
             <p>@Model.SummaryOverview</p>
 
             <div class="review-line @(Model.RequiresManualReview ? "review-needed" : "review-ok")">
-                <strong>Revisao manual:</strong>
-                <span>@(Model.RequiresManualReview ? "recomendada" : "nao indicada")</span>
+                <strong>Revisão manual:</strong>
+                <span>@(Model.RequiresManualReview ? "recomendada" : "não indicada")</span>
             </div>
 
             @if (Model.Warnings.Count > 0)
@@ -134,7 +147,7 @@
 
                             @if (component.ConnectedTo.Count > 0)
                             {
-                                <h4>Conexoes</h4>
+                                <h4>Conexões</h4>
                                 <ul class="detail-list">
                                     @foreach (var connection in component.ConnectedTo)
                                     {
@@ -186,7 +199,7 @@
 
                                 @if (risk.Evidence.Count > 0)
                                 {
-                                    <h4>Evidencias</h4>
+                                    <h4>Evidências</h4>
                                     <ul class="detail-list">
                                         @foreach (var evidence in risk.Evidence)
                                         {
@@ -202,11 +215,11 @@
         </div>
 
         <div class="report-card">
-            <h2>Recomendacoes</h2>
+            <h2>Recomendacões</h2>
 
             @if (Model.Recommendations.Count == 0)
             {
-                <p>Nenhuma recomendacao foi identificada.</p>
+                <p>Nenhuma recomendação foi identificada.</p>
             }
             else
             {
@@ -227,7 +240,7 @@
 
                                 @if (recommendation.ExpectedBenefits.Count > 0)
                                 {
-                                    <h4>Beneficios esperados</h4>
+                                    <h4>Benefícios esperados</h4>
                                     <ul class="detail-list">
                                         @foreach (var benefit in recommendation.ExpectedBenefits)
                                         {
