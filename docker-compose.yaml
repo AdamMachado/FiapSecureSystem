@@ -11,6 +11,8 @@ services:
     depends_on:
       api-gateway:
         condition: service_healthy
+      identityservice-api:
+        condition: service_healthy
     ports:
       - "${WEB_APP_PORT}:8080"
     environment:
@@ -20,6 +22,9 @@ services:
       OpenTelemetry__ServiceName: SOAT.WebApp
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+      ApiGateway__BaseUrl: http://api-gateway:8080
+      IdentityService__BaseUrl: http://identityservice-api:8080
     networks:
       - soat-net
   
@@ -31,6 +36,8 @@ services:
     image: api-gateway:local
     restart: unless-stopped
     depends_on:
+      identityservice-api:
+        condition: service_healthy
       uploadservice-api:
         condition: service_healthy
       reportservice-api:
@@ -42,6 +49,49 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       OpenTelemetry__ServiceName: SOAT.ApiGateway
+      OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+      ExternalServices__UploadService__BaseUrl: http://uploadservice-api:8080
+      ExternalServices__ReportService__BaseUrl: http://reportservice-api:8080
+      ExternalServices__IdentityService__BaseUrl: http://identityservice-api:8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - soat-net
+
+  identityservice-api:
+    container_name: FSS-identityservice-api
+    build:
+      context: .
+      dockerfile: src/Services/IdentityService/IdentityService.Api/Dockerfile
+    image: identityservice-api:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${IDENTITY_API_PORT}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Schema: ${IDENTITY_DATABASE_SCHEMA}
+      Database__EnableSensitiveDataLogging: ${DATABASE_ENABLE_SENSITIVE_DATA_LOGGING}
+
+      Jwt__Issuer: FiapSecureSystem.Identity
+      Jwt__Audience: FiapSecureSystem.Api
+      Jwt__SigningKey: dev-only-super-secret-signing-key-change-this
+      Jwt__RequireHttpsMetadata: false
+      Jwt__ValidateLifetime: true
+      Jwt__ClockSkewSeconds: 60
+
+      OpenTelemetry__ServiceName: SOAT.IdentityService.Api
       OpenTelemetry__ServiceVersion: ${OTEL_SERVICE_VERSION}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     healthcheck:

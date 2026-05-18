@@ -2,6 +2,7 @@ using IdentityService.Api.Configuration;
 using IdentityService.Api.Contracts.Requests;
 using IdentityService.Api.Contracts.Responses;
 using IdentityService.Application.UseCases.Login;
+using IdentityService.Application.UseCases.Register;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,5 +43,36 @@ public sealed class AuthController : ControllerBase
                 result.Value.Scopes));
 
         return Results.Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("register")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IResult> RegisterAsync(
+        [FromBody] RegisterRequest request,
+        [FromServices] RegisterHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new RegisterCommand(request.Email, request.DisplayName, request.Password),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return result.ToProblemHttpResult();
+
+        var response = new LoginResponse(
+            result.Value.AccessToken,
+            result.Value.TokenType,
+            result.Value.ExpiresIn,
+            new LoginUserResponse(
+                result.Value.UserId,
+                result.Value.DisplayName,
+                result.Value.Email,
+                result.Value.Roles,
+                result.Value.Scopes));
+
+        return Results.Created("/api/auth/register", response);
     }
 }

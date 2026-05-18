@@ -30,6 +30,25 @@ public sealed class IdentityServiceClient(HttpClient httpClient) : IIdentityServ
             ?? throw new IdentityServiceClientException(HttpStatusCode.BadGateway, "IdentityService returned an empty login response.");
     }
 
+    public async Task<LoginResponse> RegisterAsync(
+        string email,
+        string displayName,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        var payload = new RegisterRequest(email, displayName, password);
+
+        using var response = await SendAsync(
+            () => httpClient.PostAsJsonAsync("/api/auth/register", payload, SerializerOptions, cancellationToken),
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw await CreateExceptionAsync(response, cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<LoginResponse>(SerializerOptions, cancellationToken)
+            ?? throw new IdentityServiceClientException(HttpStatusCode.BadGateway, "IdentityService returned an empty register response.");
+    }
+
     private static async Task<HttpResponseMessage> SendAsync(
         Func<Task<HttpResponseMessage>> send,
         CancellationToken cancellationToken)

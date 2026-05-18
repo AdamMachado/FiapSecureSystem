@@ -33,6 +33,25 @@ public sealed class InMemoryUserCredentialStore : IUserCredentialStore
         return Task.FromResult(user);
     }
 
+    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken)
+        => Task.FromResult(!string.IsNullOrWhiteSpace(email) && _usersByEmail.ContainsKey(email.Trim().ToLowerInvariant()));
+
+    public Task CreateAsync(
+        Guid id,
+        string email,
+        string displayName,
+        string passwordHash,
+        IReadOnlyCollection<string> roles,
+        IReadOnlyCollection<string> scopes,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = User.Create(id, EmailAddress.Create(normalizedEmail), displayName, roles, scopes, true);
+        _usersByEmail[normalizedEmail] = new UserAuthenticationInfo(user, passwordHash);
+
+        return Task.CompletedTask;
+    }
+
     private static UserAuthenticationInfo CreateUserAuthenticationInfo(
         SeedUserOptions seedUser,
         IPasswordHasher passwordHasher)

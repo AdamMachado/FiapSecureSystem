@@ -1,0 +1,66 @@
+@model RegisterViewModel
+
+@{
+    ViewData["Title"] = "Criar conta";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/login.css" asp-append-version="true" />
+}
+
+<section class="login-page">
+    <div class="login-card">
+        <div class="login-copy">
+            <span class="page-label">Novo acesso</span>
+            <h1>Criar conta</h1>
+            <p>Cadastre-se para enviar diagramas, acompanhar analises e consultar relatorios.</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-error" role="alert">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <form asp-action="Register" method="post" class="login-form">
+            @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div class="form-field">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" class="form-input" autocomplete="name" />
+                <span asp-validation-for="DisplayName" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" class="form-input" autocomplete="username" />
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" class="form-input" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="ConfirmPassword"></label>
+                <input asp-for="ConfirmPassword" class="form-input" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="field-error"></span>
+            </div>
+
+            <button type="submit" class="app-btn app-btn-primary">Criar conta</button>
+        </form>
+
+        <div class="login-switch">
+            <span>Ja tem uma conta?</span>
+            <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Entrar</a>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

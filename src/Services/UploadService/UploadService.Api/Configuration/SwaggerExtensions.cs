@@ -47,7 +47,7 @@ public static class SwaggerExtensions
                     []
                 },
                 {
-                    new OpenApiSecuritySchemeReference("Bearer", SecuritySchemeType.Http),
+                    new OpenApiSecuritySchemeReference("Bearer", null),
                     []
                 }
             });

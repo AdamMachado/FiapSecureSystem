@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Fiap.SecureSystem.WebApp.Authentication;
 using Fiap.SecureSystem.WebApp.Clients.Identity;
+using Fiap.SecureSystem.WebApp.Clients.Identity.Contracts;
 using Fiap.SecureSystem.WebApp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -24,6 +25,18 @@ public sealed class AuthController(IIdentityServiceClient identityServiceClient)
         });
     }
 
+    [HttpGet]
+    public IActionResult Register(string? returnUrl = null)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToLocal(returnUrl);
+
+        return View(new RegisterViewModel
+        {
+            ReturnUrl = returnUrl
+        });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, CancellationToken cancellationToken)
@@ -35,28 +48,33 @@ public sealed class AuthController(IIdentityServiceClient identityServiceClient)
         {
             var response = await identityServiceClient.LoginAsync(model.Email, model.Password, cancellationToken);
 
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, response.User.Id.ToString()),
-                new(ClaimTypes.Name, response.User.Name),
-                new(ClaimTypes.Email, response.User.Email),
-                new(WebAppClaimTypes.AccessToken, response.AccessToken)
-            };
+            await SignInAsync(response);
 
-            claims.AddRange(response.User.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
-            claims.AddRange(response.User.Scopes.Select(scope => new Claim(WebAppClaimTypes.Scope, scope)));
+            return RedirectToLocal(model.ReturnUrl);
+        }
+        catch (IdentityServiceClientException exception)
+        {
+            model.ErrorMessage = exception.Message;
+            return View(model);
+        }
+    }
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(RegisterViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
 
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                principal,
-                new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(response.ExpiresIn)
-                });
+        try
+        {
+            var response = await identityServiceClient.RegisterAsync(
+                model.Email,
+                model.DisplayName,
+                model.Password,
+                cancellationToken);
+
+            await SignInAsync(response);
 
             return RedirectToLocal(model.ReturnUrl);
         }
@@ -82,5 +100,31 @@ public sealed class AuthController(IIdentityServiceClient identityServiceClient)
             return Redirect(returnUrl);
 
         return RedirectToAction("Dashboard", "Home");
+    }
+
+    private async Task SignInAsync(LoginResponse response)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, response.User.Id.ToString()),
+            new(ClaimTypes.Name, response.User.Name),
+            new(ClaimTypes.Email, response.User.Email),
+            new(WebAppClaimTypes.AccessToken, response.AccessToken)
+        };
+
+        claims.AddRange(response.User.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(response.User.Scopes.Select(scope => new Claim(WebAppClaimTypes.Scope, scope)));
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            principal,
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(response.ExpiresIn)
+            });
     }
 }

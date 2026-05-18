@@ -8,6 +8,7 @@ WORKDIR /src
 COPY ["src/Shared/Shared.Contracts/Shared.Contracts.csproj", "src/Shared/Shared.Contracts/"]
 COPY ["src/Shared/Shared.Kernel/Shared.Kernel.csproj", "src/Shared/Shared.Kernel/"]
 COPY ["src/Shared/Shared.Observability/Shared.Observability.csproj", "src/Shared/Shared.Observability/"]
+COPY ["src/Shared/Shared.Security/Shared.Security.csproj", "src/Shared/Shared.Security/"]
 
 COPY ["src/Services/UploadService/UploadService.Domain/UploadService.Domain.csproj", "src/Services/UploadService/UploadService.Domain/"]
 COPY ["src/Services/UploadService/UploadService.Application/UploadService.Application.csproj", "src/Services/UploadService/UploadService.Application/"]
@@ -27,6 +28,10 @@ RUN dotnet publish "UploadService.Api.csproj" -c Release -o /app/publish /p:UseA
 # =========================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV ASPNETCORE_URLS=http://+:8080
 

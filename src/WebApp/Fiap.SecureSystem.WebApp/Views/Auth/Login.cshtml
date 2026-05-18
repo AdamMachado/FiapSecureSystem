@@ -46,6 +46,11 @@
             <strong>Ambiente de desenvolvimento</strong>
             <span>Use `admin@fiap.local / Admin123!` ou `analyst@fiap.local / Analyst123!`.</span>
         </div>
+
+        <div class="login-switch">
+            <span>Ainda nao tem conta?</span>
+            <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Criar conta</a>
+        </div>
     </div>
 </section>
 

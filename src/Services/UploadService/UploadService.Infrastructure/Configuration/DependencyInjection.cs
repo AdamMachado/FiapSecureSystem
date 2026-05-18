@@ -117,8 +117,6 @@ public static class DependencyInjection
 
         var database = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
 
-        services.AddSharedHealthChecks();
-
         services.AddHealthChecks()
             .AddPostgreSqlHealthChecks(database)
             .AddCheck<RabbitMqHealthCheck>("rabbitmq")

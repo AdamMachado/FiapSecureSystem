@@ -33,6 +33,23 @@ public sealed class IdentityServiceClient : IIdentityServiceClient
         return await ReadFromJsonAsync<LoginResponse>(response, cancellationToken);
     }
 
+    public async Task<LoginResponse> RegisterAsync(
+        string email,
+        string displayName,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        var request = new RegisterRequest(email, displayName, password);
+        using var content = CreateJsonContent(request);
+        using var response = await SendAsync(
+            () => _httpClient.PostAsync("/api/auth/register", content, cancellationToken),
+            cancellationToken);
+
+        await UpstreamServiceException.ThrowIfUnsuccessfulAsync(response, ServiceName, cancellationToken);
+
+        return await ReadFromJsonAsync<LoginResponse>(response, cancellationToken);
+    }
+
     private static StringContent CreateJsonContent<T>(T payload)
         => new(JsonSerializer.Serialize(payload, JsonDefaults.Options), Encoding.UTF8, "application/json");
 
