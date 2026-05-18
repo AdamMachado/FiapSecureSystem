@@ -1,12 +1,9 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.Abstractions.Persistence;
-using ProcessingService.Application.Abstractions.Storage;
-using ProcessingService.Application.UseCases.CompleteAnalysisProcessing;
-using ProcessingService.Application.UseCases.FailAnalysisProcessing;
+using ProcessingService.Application.Integration.Published;
 using ProcessingService.Domain.Entities;
 using ProcessingService.Domain.Enums;
 using ProcessingService.Domain.Events;
@@ -21,15 +18,9 @@ public sealed class StartAnalysisProcessingHandler
     private readonly IAnalysisProcessRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IObjectStorage _objectStorage;
-
-    private readonly IEnumerable<IArchitectureAnalyzer> _architectureAnalyzers;
-
     private readonly IEventPublisher _eventPublisher;
     private readonly IIntegrationEventMapper<AnalysisProcessingStartedDomainEvent> _startedIntegrationEventMapper;
-
-    private readonly CompleteAnalysisProcessingHandler _completeHandler;
-    private readonly FailAnalysisProcessingHandler _failHandler;
+    private readonly AnalysisExecutionRequestedIntegrationEventFactory _executionRequestedIntegrationEventFactory;
 
     private readonly ILogger<StartAnalysisProcessingHandler> _logger;
     private readonly ActivitySource _activitySource;
@@ -38,27 +29,18 @@ public sealed class StartAnalysisProcessingHandler
         IAnalysisProcessRepository repository,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
-        IObjectStorage objectStorage,
-        IEnumerable<IArchitectureAnalyzer> architectureAnalyzers,
         IEventPublisher eventPublisher,
         IIntegrationEventMapper<AnalysisProcessingStartedDomainEvent> startedIntegrationEventMapper,
-        CompleteAnalysisProcessingHandler completeHandler,
-        FailAnalysisProcessingHandler failHandler,
+        AnalysisExecutionRequestedIntegrationEventFactory executionRequestedIntegrationEventFactory,
         ILogger<StartAnalysisProcessingHandler> logger,
         ActivitySource activitySource)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
-        _objectStorage = objectStorage;
-
-        _architectureAnalyzers = architectureAnalyzers;
-
         _eventPublisher = eventPublisher;
         _startedIntegrationEventMapper = startedIntegrationEventMapper;
-
-        _completeHandler = completeHandler;
-        _failHandler = failHandler;
+        _executionRequestedIntegrationEventFactory = executionRequestedIntegrationEventFactory;
 
         _logger = logger;
         _activitySource = activitySource;
@@ -87,186 +69,128 @@ public sealed class StartAnalysisProcessingHandler
         try
         {
             var analysisRequestId = AnalysisRequestId.Create(command.AnalysisRequestId);
-
-            var analysisExists = await _repository.ExistsByAnalysisRequestIdAsync(
+            var process = await _repository.GetByAnalysisRequestIdAsync(
                 analysisRequestId,
                 cancellationToken);
-
-            activity?.SetTag("processing.process.already_exists", analysisExists);
-
-            if (analysisExists)
-            {
-                const string errorMessage = "Analysis process already exists.";
-
-                activity?.SetStatus(ActivityStatusCode.Error, errorMessage);
-                activity?.SetTag("error.type", "processing.already_exists");
-                activity?.SetTag("error.message", errorMessage);
-
-                _logger.LogWarning(
-                    "Analysis process already exists for AnalysisRequestId={AnalysisRequestId}. Cannot start a new process for the same request.",
-                    command.AnalysisRequestId);
-
-                return Result.Failure<StartAnalysisProcessingResult>(
-                    Error.Conflict(
-                        "processing.already_exists",
-                        $"Analysis process for request '{command.AnalysisRequestId}' already exists."));
-            }
 
             var nowUtc = _dateTimeProvider.UtcNow;
-            var diagramType = ResolveDiagramType(command.ContentType);
 
-            activity?.SetTag("analysis.diagram_type", diagramType.ToString());
-            activity?.SetTag("processing.started_at_utc", nowUtc.ToString("O"));
+            activity?.SetTag("processing.process.already_exists", process is not null);
 
-            var process = AnalysisProcess.Create(
-                Guid.NewGuid(),
-                analysisRequestId,
-                command.RequestedByUserId,
-                SourceFileLocation.Create(command.StorageBucket, command.StorageObjectKey),
-                diagramType,
-                nowUtc);
+            AnalysisProcessingStartedDomainEvent? startedDomainEvent = null;
 
-            activity?.SetTag("processing.process.id", process.Id);
-            activity?.SetTag("processing.previous_status", process.Status.ToString());
-
-            process.MarkAsStarted(nowUtc);
-
-            activity?.SetTag("processing.current_status", process.Status.ToString());
-
-            await _repository.AddAsync(process, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Started analysis process. AnalysisProcessId={AnalysisProcessId}, AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
-                process.Id,
-                process.AnalysisRequestId,
-                process.DiagramType);
-
-            var startedDomainEvent = process
-                .DequeueDomainEvents()
-                .OfType<AnalysisProcessingStartedDomainEvent>()
-                .Single();
-
-            activity?.SetTag("messaging.event.type", startedDomainEvent.GetType().Name);
-            activity?.SetTag("messaging.event.id", startedDomainEvent.EventId);
-
-            var startedIntegrationEvent = _startedIntegrationEventMapper.Map(startedDomainEvent);
-
-            activity?.SetTag("messaging.integration_event.type", startedIntegrationEvent.EventType);
-            activity?.SetTag("messaging.integration_event.id", startedIntegrationEvent.EventId);
-            activity?.SetTag("correlation.id", startedIntegrationEvent.CorrelationId);
-
-            if (startedIntegrationEvent.CausationId is not null)
+            if (process is null)
             {
-                activity?.SetTag("causation.id", startedIntegrationEvent.CausationId.Value);
-            }
+                var diagramType = ResolveDiagramType(command.ContentType);
 
-            await _eventPublisher.PublishAsync(startedIntegrationEvent, cancellationToken);
+                activity?.SetTag("analysis.diagram_type", diagramType.ToString());
+                activity?.SetTag("processing.started_at_utc", nowUtc.ToString("O"));
 
-            var objectContent = await _objectStorage.DownloadAsync(
-                new DownloadObjectRequest(command.StorageBucket, command.StorageObjectKey),
-                cancellationToken);
-
-            activity?.SetTag("storage.download.completed", true);
-            activity?.SetTag("storage.download.content_length", objectContent.Content.Length);
-
-            var analyzer = _architectureAnalyzers.FirstOrDefault(a => a.CanHandle(diagramType));
-
-            activity?.SetTag("analysis.analyzer.found", analyzer is not null);
-            activity?.SetTag("analysis.analyzer.type", analyzer?.GetType().Name);
-
-            if (analyzer is null)
-            {
-                var failureReason = $"No architecture analyzer found for diagram type '{process.DiagramType}'.";
-
-                activity?.SetStatus(ActivityStatusCode.Error, failureReason);
-                activity?.SetTag("error.type", "processing.analyzer_not_found");
-                activity?.SetTag("error.message", failureReason);
-
-                process.MarkAsFailed(
-                    failureReason,
-                    null,
+                process = AnalysisProcess.Create(
+                    Guid.NewGuid(),
+                    analysisRequestId,
+                    command.RequestedByUserId,
+                    SourceFileLocation.Create(command.StorageBucket, command.StorageObjectKey),
+                    diagramType,
                     nowUtc);
+
+                activity?.SetTag("processing.process.id", process.Id);
+                activity?.SetTag("processing.previous_status", process.Status.ToString());
+
+                process.MarkAsStarted(nowUtc);
 
                 activity?.SetTag("processing.current_status", process.Status.ToString());
 
-                _logger.LogError(
-                    "No architecture analyzer found for diagram type. AnalysisProcessId={AnalysisProcessId}, DiagramType={DiagramType}",
-                    process.Id,
-                    process.DiagramType);
-
+                await _repository.AddAsync(process, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                await _failHandler.HandleAsync(
-                    new FailAnalysisProcessingCommand(
-                        command.AnalysisRequestId,
-                        failureReason),
-                    cancellationToken);
+                startedDomainEvent = process
+                    .DequeueDomainEvents()
+                    .OfType<AnalysisProcessingStartedDomainEvent>()
+                    .Single();
 
-                return Result.Failure<StartAnalysisProcessingResult>(
-                    Error.Failure("processing.analyzer_not_found", "No compatible analyzer was found."));
+                _logger.LogInformation(
+                    "Started analysis process admission. AnalysisProcessId={AnalysisProcessId}, AnalysisRequestId={AnalysisRequestId}, DiagramType={DiagramType}",
+                    process.Id,
+                    process.AnalysisRequestId,
+                    process.DiagramType);
             }
-
-            var analysisResult = await analyzer.AnalyzeAsync(
-                new ArchitectureAnalysisRequest(
-                    command.AnalysisRequestId,
-                    command.RequestedByUserId,
-                    diagramType,
-                    command.FileName,
-                    command.ContentType,
-                    objectContent.Content),
-                cancellationToken);
-
-            activity?.SetTag("analysis.extracted_text.length", analysisResult.ExtractedText?.Length ?? 0);
-            activity?.SetTag("analysis.components.count", analysisResult.Components.Count);
-            activity?.SetTag("analysis.risks.count", analysisResult.Risks.Count);
-            activity?.SetTag("analysis.recommendations.count", analysisResult.Recommendations.Count);
-            activity?.SetTag("analysis.requires_manual_review", analysisResult.RequiresManualReview);
-            activity?.SetTag("analysis.warnings.count", analysisResult.Warnings.Count);
-
-            var completed = await _completeHandler.HandleAsync(
-                new CompleteAnalysisProcessingCommand(
-                    command.AnalysisRequestId,
-                    analysisResult.ExtractedText,
-                    analysisResult.Components,
-                    analysisResult.Risks,
-                    analysisResult.Recommendations,
-                    analysisResult.Overview,
-                    analysisResult.RequiresManualReview,
-                    analysisResult.Warnings),
-                cancellationToken);
-
-            if (completed.IsFailure)
+            else
             {
-                activity?.SetStatus(ActivityStatusCode.Error, completed.Error.Message);
-                activity?.SetTag("error.type", completed.Error.Code);
-                activity?.SetTag("error.message", completed.Error.Message);
+                activity?.SetTag("processing.process.id", process.Id);
+                activity?.SetTag("processing.previous_status", process.Status.ToString());
+                activity?.SetTag("processing.current_status", process.Status.ToString());
+                activity?.SetTag("analysis.diagram_type", process.DiagramType.ToString());
 
-                _logger.LogError(
-                    "Failed to complete analysis processing after successful analysis. AnalysisRequestId={AnalysisRequestId}, Error: {ErrorCode} - {ErrorMessage}",
-                    command.AnalysisRequestId,
-                    completed.Error.Code,
-                    completed.Error.Message);
+                if (process.Status == ProcessingStatus.Pending)
+                {
+                    process.MarkAsStarted(nowUtc);
+                    _repository.Update(process);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                return Result.Failure<StartAnalysisProcessingResult>(completed.Error);
+                    startedDomainEvent = process
+                        .DequeueDomainEvents()
+                        .OfType<AnalysisProcessingStartedDomainEvent>()
+                        .Single();
+
+                    activity?.SetTag("processing.started_at_utc", nowUtc.ToString("O"));
+                    activity?.SetTag("processing.current_status", process.Status.ToString());
+                }
+                else if (process.Status is ProcessingStatus.Completed or ProcessingStatus.Failed)
+                {
+                    _logger.LogInformation(
+                        "Ignoring duplicate analysis admission for terminal process. AnalysisProcessId={AnalysisProcessId}, AnalysisRequestId={AnalysisRequestId}, Status={Status}",
+                        process.Id,
+                        process.AnalysisRequestId,
+                        process.Status);
+
+                    activity?.SetStatus(ActivityStatusCode.Ok);
+
+                    return Result.Success(new StartAnalysisProcessingResult(
+                        process.Id,
+                        process.AnalysisRequestId.Value,
+                        process.Status,
+                        process.StartedAtUtc ?? nowUtc,
+                        process.CompletedAtUtc,
+                        process.FailedAtUtc,
+                        process.FailureReason));
+                }
             }
 
-            activity?.SetTag("processing.completed_at_utc", completed.Value.CompletedAtUtc.ToString("O"));
-            activity?.SetTag("processing.final_status", completed.Value.Status.ToString());
+            if (startedDomainEvent is not null)
+            {
+                activity?.SetTag("messaging.event.type", startedDomainEvent.GetType().Name);
+                activity?.SetTag("messaging.event.id", startedDomainEvent.EventId);
+
+                var startedIntegrationEvent = _startedIntegrationEventMapper.Map(startedDomainEvent);
+
+                activity?.SetTag("messaging.integration_event.type", startedIntegrationEvent.EventType);
+                activity?.SetTag("messaging.integration_event.id", startedIntegrationEvent.EventId);
+                activity?.SetTag("correlation.id", startedIntegrationEvent.CorrelationId);
+
+                if (startedIntegrationEvent.CausationId is not null)
+                    activity?.SetTag("causation.id", startedIntegrationEvent.CausationId.Value);
+
+                await _eventPublisher.PublishAsync(startedIntegrationEvent, cancellationToken);
+            }
+
+            var executionRequestedEvent = _executionRequestedIntegrationEventFactory.Create(command, process.Id);
+
+            activity?.SetTag("messaging.execution_request.type", executionRequestedEvent.EventType);
+            activity?.SetTag("messaging.execution_request.id", executionRequestedEvent.EventId);
+
+            await _eventPublisher.PublishAsync(executionRequestedEvent, cancellationToken);
+
             activity?.SetStatus(ActivityStatusCode.Ok);
 
-            _logger.LogInformation(
-                "Successfully completed analysis processing. AnalysisRequestId={AnalysisRequestId}",
-                command.AnalysisRequestId);
-
             return Result.Success(new StartAnalysisProcessingResult(
-                completed.Value.AnalysisProcessId,
-                completed.Value.AnalysisRequestId,
-                completed.Value.Status,
-                nowUtc,
-                completed.Value.CompletedAtUtc,
-                null,
-                null));
+                process.Id,
+                process.AnalysisRequestId.Value,
+                process.Status,
+                process.StartedAtUtc ?? nowUtc,
+                process.CompletedAtUtc,
+                process.FailedAtUtc,
+                process.FailureReason));
         }
         catch (Exception ex)
         {
@@ -276,37 +200,20 @@ public sealed class StartAnalysisProcessingHandler
 
             _logger.LogError(
                 ex,
-                "An unexpected error occurred during analysis processing. AnalysisRequestId={AnalysisRequestId}",
+                "An unexpected error occurred while admitting analysis processing. AnalysisRequestId={AnalysisRequestId}",
                 command.AnalysisRequestId);
 
-            var failed = await _failHandler.HandleAsync(
-                new FailAnalysisProcessingCommand(
-                    command.AnalysisRequestId,
-                    "An unexpected error occurred during analysis processing.",
-                    ex.Message),
-                cancellationToken);
+            var errorCode = "processing.error";
 
-            if (failed.IsFailure)
-            {
-                activity?.SetTag("processing.failure_handler.error_code", failed.Error.Code);
-                activity?.SetTag("processing.failure_handler.error_message", failed.Error.Message);
+            if (ex is ValidationException)
+                errorCode = "processing.validation_error";
+            else if (ex is DomainException)
+                errorCode = "processing.domain_error";
+            else if (ex is ArgumentException)
+                errorCode = "processing.invalid_argument";
 
-                return Result.Failure<StartAnalysisProcessingResult>(failed.Error);
-            }
-
-            activity?.SetTag("processing.process.id", failed.Value.AnalysisProcessId);
-            activity?.SetTag("processing.final_status", failed.Value.Status.ToString());
-            activity?.SetTag("processing.failed_at_utc", failed.Value.FailedAtUtc.ToString("O"));
-            activity?.SetTag("analysis.failure.reason", failed.Value.FailureReason);
-
-            return Result.Success(new StartAnalysisProcessingResult(
-                failed.Value.AnalysisProcessId,
-                failed.Value.AnalysisRequestId,
-                failed.Value.Status,
-                _dateTimeProvider.UtcNow,
-                null,
-                failed.Value.FailedAtUtc,
-                failed.Value.FailureReason));
+            return Result.Failure<StartAnalysisProcessingResult>(
+                Error.Validation(errorCode, ex.Message));
         }
     }
 

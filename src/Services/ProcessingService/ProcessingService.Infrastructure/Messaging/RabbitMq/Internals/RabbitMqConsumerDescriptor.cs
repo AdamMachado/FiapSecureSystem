@@ -9,4 +9,6 @@ public sealed record RabbitMqConsumerDescriptor(
     string DeadLetterExchangeName,
     string DeadLetterRoutingKey,
     Type IntegrationEventType,
+    ushort PrefetchCount,
+    ushort ConsumerDispatchConcurrency,
     Func<IServiceProvider, IntegrationEventBase, CancellationToken, Task> Handler);

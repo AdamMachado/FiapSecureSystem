@@ -133,6 +133,7 @@ declare_queue "report" "upload.report.generated" "report.generated"
 
 echo "Declaring Processing queues..."
 declare_queue "analysis" "processing.analysis.requested" "analysis.requested"
+declare_queue "analysis" "processing.analysis.execution.requested" "analysis.execution.requested"
 
 echo "Declaring Report queues..."
 declare_queue "analysis" "report.analysis.completed" "analysis.completed"
