@@ -40,6 +40,7 @@
     <Project Path="src/Shared/Shared.Contracts/Shared.Contracts.csproj" />
     <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj" />
     <Project Path="src/Shared/Shared.Observability/Shared.Observability.csproj" />
+    <Project Path="src/Shared/Shared.Security/Shared.Security.csproj" />
   </Folder>
   <Folder Name="/src/WebApp/">
     <Project Path="src/WebApp/Fiap.SecureSystem.WebApp/Fiap.SecureSystem.WebApp.csproj" />

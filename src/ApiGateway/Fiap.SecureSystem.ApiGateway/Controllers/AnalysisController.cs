@@ -3,8 +3,10 @@ using Fiap.SecureSystem.ApiGateway.Contracts.Responses;
 using Fiap.SecureSystem.ApiGateway.Services.Common;
 using Fiap.SecureSystem.ApiGateway.Services.Report;
 using Fiap.SecureSystem.ApiGateway.Services.Upload;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Kernel.Pagination;
+using Shared.Security.Authorization;
 
 namespace Fiap.SecureSystem.ApiGateway.Controllers;
 
@@ -14,6 +16,7 @@ namespace Fiap.SecureSystem.ApiGateway.Controllers;
 public sealed class AnalysisController : ControllerBase
 {
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisWrite)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(CreateAnalysisResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -50,6 +53,7 @@ public sealed class AnalysisController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [ProducesResponseType(typeof(PagedResult<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> ListAnalysesAsync(
@@ -69,6 +73,7 @@ public sealed class AnalysisController : ControllerBase
     }
 
     [HttpPost("status-check")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IReadOnlyCollection<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -98,6 +103,7 @@ public sealed class AnalysisController : ControllerBase
     }
 
     [HttpGet("{analysisId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisDetailsRead)]
     [ProducesResponseType(typeof(AnalysisDetailsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -127,6 +133,7 @@ public sealed class AnalysisController : ControllerBase
     }
 
     [HttpGet("{analysisId:guid}/asset")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]

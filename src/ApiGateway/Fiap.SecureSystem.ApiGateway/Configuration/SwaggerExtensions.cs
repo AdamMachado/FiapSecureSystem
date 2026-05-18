@@ -1,5 +1,5 @@
-using Shared.Contracts.Messaging;
 using Microsoft.OpenApi;
+using Shared.Contracts.Messaging;
 
 namespace Fiap.SecureSystem.ApiGateway.Configuration;
 
@@ -13,7 +13,7 @@ public static class SwaggerExtensions
             {
                 Title = "API Gateway",
                 Version = "v1",
-                Description = "Gateway para consolidação das APIs de upload e relatórios."
+                Description = "Gateway para consolidacao das APIs de upload e relatorios."
             });
 
             options.AddSecurityDefinition(HeaderNames.CorrelationId, new OpenApiSecurityScheme
@@ -21,14 +21,28 @@ public static class SwaggerExtensions
                 Name = HeaderNames.CorrelationId,
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
-                Description = "Correlation id propagado entre serviços. Se não informado, será gerado automaticamente."
+                Description = "Correlation id propagado entre servicos. Se nao informado, sera gerado automaticamente."
+            });
+
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "JWT access token."
             });
 
             options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
             {
                 {
                     new OpenApiSecuritySchemeReference(HeaderNames.CorrelationId, null),
-                    new List<string>()
+                    []
+                },
+                {
+                    new OpenApiSecuritySchemeReference("Bearer", SecuritySchemeType.Http),
+                    []
                 }
             });
         });

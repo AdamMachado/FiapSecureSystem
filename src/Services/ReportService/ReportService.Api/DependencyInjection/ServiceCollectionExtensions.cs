@@ -1,4 +1,4 @@
-﻿using ReportService.Application;
+using ReportService.Application;
 
 namespace ReportService.Api.DependencyInjection;
 
@@ -8,7 +8,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
 
         services.AddReportApplication();
 

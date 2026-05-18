@@ -3,6 +3,7 @@ using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
 using Shared.Observability.Logging;
 using Shared.Observability.Telemetry;
+using Shared.Security.DependencyInjection;
 using System.Diagnostics;
 using UploadService.Api.Configuration;
 using UploadService.Api.DependencyInjection;
@@ -25,6 +26,9 @@ builder.Services.AddSharedOpenTelemetry(
     builder.Configuration,
     serviceName,
     serviceName);
+builder.Services.AddSharedHealthChecks();
+builder.Services.AddSharedJwtAuthentication(builder.Configuration);
+builder.Services.AddSharedJwtAuthorization();
 
 builder.Services.AddUploadProblemDetails();
 builder.Services.AddUploadSwagger();
@@ -50,11 +54,11 @@ logger.LogInformation(
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCorrelationContext();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
     app.UseUploadSwagger();
-
-//app.UseAuthorization();
 
 if (!isRunningInContainer)
     app.UseHttpsRedirection();

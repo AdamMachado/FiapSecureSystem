@@ -6,6 +6,7 @@ using Shared.Observability.Correlation;
 using Shared.Observability.HealthChecks;
 using Shared.Observability.Logging;
 using Shared.Observability.Telemetry;
+using Shared.Security.DependencyInjection;
 
 Activity.DefaultIdFormat = ActivityIdFormat.W3C;
 Activity.ForceDefaultIdFormat = true;
@@ -23,6 +24,8 @@ builder.Services.AddSharedOpenTelemetry(
     serviceName,
     serviceName);
 builder.Services.AddSharedHealthChecks();
+builder.Services.AddSharedJwtAuthentication(builder.Configuration);
+builder.Services.AddSharedJwtAuthorization();
 builder.Services.AddApiGatewayProblemDetails();
 builder.Services.AddApiGatewaySwagger();
 builder.Services.AddApiGatewayServices(builder.Configuration);
@@ -44,6 +47,8 @@ logger.LogInformation(
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseCorrelationContext();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {

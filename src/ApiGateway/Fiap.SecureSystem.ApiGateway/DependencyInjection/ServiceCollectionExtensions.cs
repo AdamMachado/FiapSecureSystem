@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Fiap.SecureSystem.ApiGateway.Options;
+using Fiap.SecureSystem.ApiGateway.Services.Common;
 using Fiap.SecureSystem.ApiGateway.Services.Report;
 using Fiap.SecureSystem.ApiGateway.Services.Upload;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,8 @@ public static class ServiceCollectionExtensions
             });
 
         services.AddEndpointsApiExplorer();
+        services.AddHttpContextAccessor();
+        services.AddTransient<ForwardHeadersHandler>();
 
         services
             .AddOptions<UploadServiceOptions>()
@@ -33,23 +36,27 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddHttpClient<IUploadServiceClient, UploadServiceClient>((serviceProvider, client) =>
-        {
-            var options = serviceProvider
-                .GetRequiredService<IOptions<UploadServiceOptions>>()
-                .Value;
+        services
+            .AddHttpClient<IUploadServiceClient, UploadServiceClient>((serviceProvider, client) =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<UploadServiceOptions>>()
+                    .Value;
 
-            client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-        });
+                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+            })
+            .AddHttpMessageHandler<ForwardHeadersHandler>();
 
-        services.AddHttpClient<IReportServiceClient, ReportServiceClient>((serviceProvider, client) =>
-        {
-            var options = serviceProvider
-                .GetRequiredService<IOptions<ReportServiceOptions>>()
-                .Value;
+        services
+            .AddHttpClient<IReportServiceClient, ReportServiceClient>((serviceProvider, client) =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<ReportServiceOptions>>()
+                    .Value;
 
-            client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-        });
+                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+            })
+            .AddHttpMessageHandler<ForwardHeadersHandler>();
 
         return services;
     }

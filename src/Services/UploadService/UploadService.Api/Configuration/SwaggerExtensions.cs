@@ -13,7 +13,7 @@ public static class SwaggerExtensions
             {
                 Title = "UploadService API",
                 Version = "v1",
-                Description = "API responsável por receber diagramas arquiteturais e expor o status da análise."
+                Description = "API responsavel por receber diagramas arquiteturais e expor o status da analise."
             });
 
             options.MapType<IFormFile>(() => new OpenApiSchema
@@ -27,14 +27,28 @@ public static class SwaggerExtensions
                 Name = HeaderNames.CorrelationId,
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
-                Description = "Correlation id propagado entre serviços. Se não informado, será gerado pelo middleware."
+                Description = "Correlation id propagado entre servicos. Se nao informado, sera gerado pelo middleware."
             });
 
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement()
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "JWT access token."
+            });
+
+            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
             {
                 {
                     new OpenApiSecuritySchemeReference(HeaderNames.CorrelationId, null),
-                    new List<string>()
+                    []
+                },
+                {
+                    new OpenApiSecuritySchemeReference("Bearer", SecuritySchemeType.Http),
+                    []
                 }
             });
         });

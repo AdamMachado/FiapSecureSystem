@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReportService.Api.Contracts.Responses;
 using ReportService.Application.UseCases.DownloadReportFile;
 using ReportService.Application.UseCases.GetReportByAnalysis;
 using ReportService.Domain.Enums;
+using Shared.Security.Authorization;
 
 namespace ReportService.Api.Controllers;
 
@@ -11,6 +13,7 @@ namespace ReportService.Api.Controllers;
 public sealed class ReportsController : ControllerBase
 {
     [HttpGet("by-analysis/{analysisId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.ReportRead)]
     [ProducesResponseType(typeof(GetReportByAnalysisResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByAnalysis(
@@ -45,6 +48,7 @@ public sealed class ReportsController : ControllerBase
     }
 
     [HttpGet("by-analysis/{analysisId:guid}/files/{format}")]
+    [Authorize(Policy = AuthorizationPolicies.ReportRead)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Kernel.Pagination;
+using Shared.Security.Authorization;
 using System.Security.Cryptography;
 using UploadService.Api.Configuration;
 using UploadService.Api.Contracts.Requests;
@@ -26,6 +28,7 @@ public sealed class AnalysesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisWrite)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(CreateAnalysisResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -78,6 +81,7 @@ public sealed class AnalysesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [ProducesResponseType(typeof(PagedResult<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IResult> ListAsync(
@@ -107,6 +111,7 @@ public sealed class AnalysesController : ControllerBase
     }
 
     [HttpPost("by-ids")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IReadOnlyCollection<AnalysisSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -137,6 +142,7 @@ public sealed class AnalysesController : ControllerBase
     }
 
     [HttpGet("{analysisRequestId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [ProducesResponseType(typeof(GetAnalysisStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -169,6 +175,7 @@ public sealed class AnalysesController : ControllerBase
     }
 
     [HttpGet("{analysisRequestId:guid}/asset")]
+    [Authorize(Policy = AuthorizationPolicies.AnalysisRead)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
