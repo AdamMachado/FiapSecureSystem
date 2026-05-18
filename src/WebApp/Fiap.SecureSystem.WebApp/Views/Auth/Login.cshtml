@@ -1,0 +1,54 @@
+@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Entrar";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/components/login.css" asp-append-version="true" />
+}
+
+<section class="login-page">
+    <div class="login-card">
+        <div class="login-copy">
+            <span class="page-label">Acesso seguro</span>
+            <h1>Entrar na plataforma</h1>
+            <p>Use uma conta valida para acessar o dashboard, enviar diagramas e consultar relatorios.</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-error" role="alert">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <form asp-action="Login" method="post" class="login-form">
+            @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div class="form-field">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" class="form-input" autocomplete="username" />
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" class="form-input" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+
+            <button type="submit" class="app-btn app-btn-primary">Entrar</button>
+        </form>
+
+        <div class="login-hint">
+            <strong>Ambiente de desenvolvimento</strong>
+            <span>Use `admin@fiap.local / Admin123!` ou `analyst@fiap.local / Analyst123!`.</span>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -22,8 +22,26 @@
 
             <div class="app-nav-links">
                 <a asp-controller="Home" asp-action="Index">Home</a>
-                <a asp-controller="Home" asp-action="Dashboard">Dashboard</a>
-                <a asp-controller="Analyses" asp-action="Create">Enviar diagrama</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Home" asp-action="Dashboard">Dashboard</a>
+                    <a asp-controller="Analyses" asp-action="Create">Enviar diagrama</a>
+                }
+            </div>
+
+            <div class="app-user-nav">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <span class="app-user-name">@(User.Identity?.Name ?? "Usuario")</span>
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="app-logout-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="app-btn app-btn-secondary app-btn-compact">Sair</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Auth" asp-action="Login" class="app-btn app-btn-secondary app-btn-compact">Entrar</a>
+                }
             </div>
         </nav>
     </header>

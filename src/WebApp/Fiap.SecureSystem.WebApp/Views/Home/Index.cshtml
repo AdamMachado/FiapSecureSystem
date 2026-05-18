@@ -16,9 +16,21 @@
         </p>
 
         <div class="actions">
-            <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
-                Enviar diagrama
-            </a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
+                    Enviar diagrama
+                </a>
+                <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
+                    Abrir dashboard
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Auth" asp-action="Login" class="app-btn app-btn-primary">
+                    Entrar para continuar
+                </a>
+            }
         </div>
     </div>
 

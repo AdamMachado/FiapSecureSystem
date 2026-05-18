@@ -1,5 +1,6 @@
 using Fiap.SecureSystem.WebApp.Clients.ApiGateway;
 using Fiap.SecureSystem.WebApp.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -7,11 +8,13 @@ namespace Fiap.SecureSystem.WebApp.Controllers;
 
 public class HomeController(IApiGatewayClient apiGatewayClient) : Controller
 {
+    [AllowAnonymous]
     public IActionResult Index()
     {
         return View();
     }
 
+    [Authorize]
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
         try
@@ -51,6 +54,7 @@ public class HomeController(IApiGatewayClient apiGatewayClient) : Controller
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [AllowAnonymous]
     public IActionResult Error()
     {
         return View(new ErrorViewModel

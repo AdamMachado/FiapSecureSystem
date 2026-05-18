@@ -2,10 +2,12 @@ using System.Net;
 using System.Text.Json;
 using Fiap.SecureSystem.WebApp.Clients.ApiGateway;
 using Fiap.SecureSystem.WebApp.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fiap.SecureSystem.WebApp.Controllers;
 
+[Authorize]
 public class ReportsController(IApiGatewayClient apiGatewayClient) : Controller
 {
     private static readonly HashSet<string> AllowedReportFormats = new(StringComparer.OrdinalIgnoreCase)

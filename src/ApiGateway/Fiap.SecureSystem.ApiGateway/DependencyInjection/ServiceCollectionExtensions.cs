@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Fiap.SecureSystem.ApiGateway.Options;
 using Fiap.SecureSystem.ApiGateway.Services.Common;
+using Fiap.SecureSystem.ApiGateway.Services.Identity;
 using Fiap.SecureSystem.ApiGateway.Services.Report;
 using Fiap.SecureSystem.ApiGateway.Services.Upload;
 using Microsoft.Extensions.Options;
@@ -37,6 +38,12 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services
+            .AddOptions<IdentityServiceOptions>()
+            .Bind(configuration.GetSection(IdentityServiceOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
             .AddHttpClient<IUploadServiceClient, UploadServiceClient>((serviceProvider, client) =>
             {
                 var options = serviceProvider
@@ -52,6 +59,17 @@ public static class ServiceCollectionExtensions
             {
                 var options = serviceProvider
                     .GetRequiredService<IOptions<ReportServiceOptions>>()
+                    .Value;
+
+                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+            })
+            .AddHttpMessageHandler<ForwardHeadersHandler>();
+
+        services
+            .AddHttpClient<IIdentityServiceClient, IdentityServiceClient>((serviceProvider, client) =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<IdentityServiceOptions>>()
                     .Value;
 
                 client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
