@@ -24,6 +24,12 @@
     <Project Path="src/Services/ProcessingService/ProcessingService.Infrastructure/ProcessingService.Infrastructure.csproj" />
     <Project Path="src/Services/ProcessingService/ProcessingService.Worker/ProcessingService.Worker.csproj" Id="f34357ff-1f02-48ca-927a-309ad6c2de9e" />
   </Folder>
+  <Folder Name="/src/Services/IdentityService/">
+    <Project Path="src/Services/IdentityService/IdentityService.Api/IdentityService.Api.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Application/IdentityService.Application.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Domain/IdentityService.Domain.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/ReportService/">
     <Project Path="src/Services/ReportService/ReportService.Api/ReportService.Api.csproj" />
     <Project Path="src/Services/ReportService/ReportService.Application/ReportService.Application.csproj" />
