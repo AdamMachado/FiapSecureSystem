@@ -1,10 +1,10 @@
-﻿@{
+@{
     ViewData["Title"] = "FIAP Secure System";
 }
 
 <section class="hero">
     <div class="hero-left">
-        <img src="~/images/logo.png" class="img-outdoor" alt="FIAP Secure System" />
+        <img src="~/images/logo-text.png" class="img-outdoor" alt="FIAP Secure System" />
 
         <span class="hero-badge">Secure Systems • AI Architecture Review</span>
 
@@ -16,6 +16,10 @@
         </p>
 
         <div class="actions">
+            <a asp-controller="Home" asp-action="Dashboard" class="app-btn app-btn-secondary">
+                Entrar
+            </a>
+
             <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
                 Enviar diagrama
             </a>

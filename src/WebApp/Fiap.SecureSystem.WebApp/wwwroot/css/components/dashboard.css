@@ -1,5 +1,5 @@
 .dashboard-page {
-    padding: 56px 0 72px;
+    padding: 2rem 0 3rem 0;
 }
 
 .dashboard-header {
@@ -7,7 +7,7 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 24px;
-    margin-bottom: 32px;
+    margin-bottom: 1.2rem;
 }
 
 .page-label {
@@ -19,7 +19,7 @@
 }
 
 .dashboard-header h1 {
-    margin: 10px 0 8px;
+    margin: 6px 0 3px;
     font-size: clamp(2rem, 4vw, 3.2rem);
     font-weight: 850;
     letter-spacing: -0.04em;
@@ -34,7 +34,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 18px;
-    margin-bottom: 28px;
+    margin-bottom: 1.2rem;
 }
 
 .summary-card,
@@ -95,6 +95,7 @@
 }
 
 .analysis-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -187,10 +188,30 @@
     gap: 16px;
 }
 
+.analysis-row-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 16px;
+}
+
+.analysis-row-empty {
+    cursor: default;
+}
+
+.analysis-row-empty:hover {
+    transform: none;
+}
+
 .link {
     color: var(--primary-light);
     font-weight: 600;
     text-decoration: none;
+}
+
+.analysis-report-link {
+    position: relative;
+    z-index: 2;
 }
 
     .link:hover {

@@ -17,10 +17,6 @@
         </div>
 
         <div class="report-actions">
-            <a asp-controller="Analyses" asp-action="Details" asp-route-id="@Model.AnalysisId" class="app-btn app-btn-secondary">
-                Voltar
-            </a>
-
             <form asp-controller="Reports" asp-action="Download" method="get" class="report-download-form">
                 <input type="hidden" name="analysisId" value="@Model.AnalysisId" />
 

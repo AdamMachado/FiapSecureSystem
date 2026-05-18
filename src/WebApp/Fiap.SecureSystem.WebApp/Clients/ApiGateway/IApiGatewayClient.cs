@@ -5,6 +5,7 @@ namespace Fiap.SecureSystem.WebApp.Clients.ApiGateway;
 public interface IApiGatewayClient
 {
     Task<PagedResult<AnalysisSummaryResponse>> ListAnalysesAsync(int pageNumber, int pageSize, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<AnalysisSummaryResponse>> CheckPendingAnalysisStatusAsync(IReadOnlyCollection<Guid> analysisIds, CancellationToken cancellationToken);
     Task<AnalysisDetailsResponse> GetAnalysisDetailsAsync(Guid analysisId, CancellationToken cancellationToken);
     Task<CreateAnalysisResponse> UploadAnalysisAsync(IFormFile file, CancellationToken cancellationToken);
     Task<ReportByAnalysisResponse> GetReportByAnalysisAsync(Guid analysisId, CancellationToken cancellationToken);

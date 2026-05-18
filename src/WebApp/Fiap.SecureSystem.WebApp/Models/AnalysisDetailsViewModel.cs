@@ -4,6 +4,7 @@ public sealed class AnalysisDetailsViewModel
 {
     public Guid Id { get; init; }
     public string FileName { get; init; } = string.Empty;
+    public string StatusCode { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string StatusCssClass { get; init; } = "processing";
     public string ContentType { get; init; } = string.Empty;

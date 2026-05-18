@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - FIAP Secure System</title>
 
+    <link rel="stylesheet" href="~/lib/font-awesome/6.7.2/css/fa-v6-main.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Fiap.SecureSystem.WebApp.styles.css" asp-append-version="true" />
     <link rel="icon" type="image/x-icon" href="~/images/favicon.ico" />
@@ -16,8 +17,8 @@
     <header class="app-header">
         <nav class="app-navbar">
             <a class="app-brand" asp-controller="Home" asp-action="Index">
-                <img src="~/images/logo.png" class="app-logo" alt="FIAP Secure System" />
-                <span>Secure System</span>
+                <div class="app-logo" alt="FIAP Secure System"></div>
+                <span class="header-title brand-text"><span class="highlighted-text">FIAP</span> Secure System</span>
             </a>
 
             <div class="app-nav-links">
@@ -33,7 +34,7 @@
     </main>
 
     <footer class="app-footer">
-        <span>&copy; 2026 - FIAP Secure System</span>
+        <span>&copy; 2026 - FIAP Secure System | Adam Machado | Alan Cardoso</span>
         <span>SOAT Tech Challenge - Hackathon</span>
     </footer>
 

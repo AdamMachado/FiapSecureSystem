@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using ProcessingService.Application.Abstractions.AI;
 using ProcessingService.Domain.Enums;
 using ProcessingService.Domain.Exceptions;
@@ -37,6 +37,8 @@ public sealed class StubArchitectureAnalyzer : IArchitectureAnalyzer
             request.ContentType);
 
         var result = CreateFakeResult(request);
+
+        Thread.Sleep(15000);
 
         return Task.FromResult(result);
     }

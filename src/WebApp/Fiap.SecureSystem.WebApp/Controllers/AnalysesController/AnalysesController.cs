@@ -19,27 +19,21 @@ public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
         try
         {
             var response = await apiGatewayClient.GetAnalysisDetailsAsync(id, cancellationToken);
-            var model = new AnalysisDetailsViewModel
-            {
-                Id = response.Analysis.AnalysisRequestId,
-                FileName = response.Analysis.FileName,
-                Status = StatusPresentation.ToDisplayLabel(response.Analysis.Status),
-                StatusCssClass = StatusPresentation.ToCssClass(response.Analysis.Status),
-                ContentType = response.Analysis.ContentType,
-                SizeInBytes = response.Analysis.SizeInBytes,
-                CreatedAtUtc = response.Analysis.CreatedAtUtc,
-                UpdatedAtUtc = response.Analysis.UpdatedAtUtc,
-                StartedAtUtc = response.Analysis.StartedAtUtc,
-                CompletedAtUtc = response.Analysis.CompletedAtUtc,
-                FailedAtUtc = response.Analysis.FailedAtUtc,
-                FailureReason = response.Analysis.FailureReason,
-                HasReport = response.Report is not null,
-                ReportDetailsUrl = response.Report is null ? null : Url.Action("Details", "Reports", new { analysisId = id }),
-                ReportDownloadUrl = response.Report is null ? null : Url.Action(nameof(DownloadReport), new { id }),
-                AssetDownloadUrl = Url.Action(nameof(DownloadAsset), new { id })
-            };
+            return View(MapAnalysisDetails(response));
+        }
+        catch (ApiGatewayClientException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+    }
 
-            return View(model);
+    [HttpGet]
+    public async Task<IActionResult> DetailsStatus(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await apiGatewayClient.GetAnalysisDetailsAsync(id, cancellationToken);
+            return Json(MapAnalysisDetails(response));
         }
         catch (ApiGatewayClientException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
         {
@@ -103,5 +97,32 @@ public class AnalysesController(IApiGatewayClient apiGatewayClient) : Controller
     {
         var file = await apiGatewayClient.DownloadAnalysisAssetAsync(id, cancellationToken);
         return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    private AnalysisDetailsViewModel MapAnalysisDetails(Clients.ApiGateway.Contracts.AnalysisDetailsResponse response)
+    {
+        var analysis = response.Analysis;
+        var normalizedStatus = analysis.Status?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        return new AnalysisDetailsViewModel
+        {
+            Id = analysis.AnalysisRequestId,
+            FileName = analysis.FileName,
+            StatusCode = normalizedStatus,
+            Status = StatusPresentation.ToDisplayLabel(analysis.Status),
+            StatusCssClass = StatusPresentation.ToCssClass(analysis.Status),
+            ContentType = analysis.ContentType,
+            SizeInBytes = analysis.SizeInBytes,
+            CreatedAtUtc = analysis.CreatedAtUtc,
+            UpdatedAtUtc = analysis.UpdatedAtUtc,
+            StartedAtUtc = analysis.StartedAtUtc,
+            CompletedAtUtc = analysis.CompletedAtUtc,
+            FailedAtUtc = analysis.FailedAtUtc,
+            FailureReason = analysis.FailureReason,
+            HasReport = response.Report is not null,
+            ReportDetailsUrl = response.Report is null ? null : Url.Action("Details", "Reports", new { analysisId = analysis.AnalysisRequestId }),
+            ReportDownloadUrl = response.Report is null ? null : Url.Action(nameof(DownloadReport), new { id = analysis.AnalysisRequestId }),
+            AssetDownloadUrl = Url.Action(nameof(DownloadAsset), new { id = analysis.AnalysisRequestId })
+        };
     }
 }

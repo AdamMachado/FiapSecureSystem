@@ -34,6 +34,25 @@ public sealed class ApiGatewayClient(HttpClient httpClient) : IApiGatewayClient
             ?? new PagedResult<AnalysisSummaryResponse>();
     }
 
+    public async Task<IReadOnlyCollection<AnalysisSummaryResponse>> CheckPendingAnalysisStatusAsync(
+        IReadOnlyCollection<Guid> analysisIds,
+        CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(
+            () => httpClient.PostAsJsonAsync(
+                "/api/analysis/status-check",
+                new AnalysisIdsRequest
+                {
+                    AnalysisRequestIds = analysisIds
+                },
+                SerializerOptions,
+                cancellationToken),
+            cancellationToken);
+
+        return await ReadJsonAsync<IReadOnlyCollection<AnalysisSummaryResponse>>(response, cancellationToken)
+            ?? Array.Empty<AnalysisSummaryResponse>();
+    }
+
     public async Task<AnalysisDetailsResponse> GetAnalysisDetailsAsync(Guid analysisId, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(

@@ -1,19 +1,35 @@
+@using System.Text.Json
 @model DashboardViewModel
 
 @{
     ViewData["Title"] = "Dashboard";
+
+    var dashboardPayload = JsonSerializer.Serialize(
+        Model,
+        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+}
+
+@functions {
+    private static string BuildAnalysisSubtitle(AnalysisListItemViewModel analysis)
+    {
+        return $"Enviado em {analysis.CreatedAtUtc.ToLocalTime():dd/MM/yyyy HH:mm} - {analysis.ContentType}";
+    }
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/components/dashboard.css" asp-append-version="true" />
 }
 
-<section class="dashboard-page">
+<section
+    class="dashboard-page"
+    id="dashboard-root"
+    data-analyses-url="@Url.Action("DashboardAnalyses", "Home")"
+    data-pending-status-url="@Url.Action("DashboardPendingStatuses", "Home")">
     <div class="dashboard-header">
         <div>
             <span class="page-label">Visão geral</span>
             <h1>Dashboard</h1>
-            <p>Acompanhe as análises enviadas e o status do pipeline.</p>
+            <p>Acompanhe as análises enviadas e o status do processamento.</p>
         </div>
 
         <a asp-controller="Analyses" asp-action="Create" class="app-btn app-btn-primary">
@@ -31,25 +47,25 @@
     <div class="summary-grid">
         <div class="summary-card">
             <span>Total</span>
-            <strong>@Model.TotalAnalyses</strong>
+            <strong id="dashboard-total">@Model.TotalAnalyses</strong>
             <p>Análises criadas</p>
         </div>
 
         <div class="summary-card">
             <span>Processando</span>
-            <strong>@Model.ProcessingAnalyses</strong>
+            <strong id="dashboard-processing">@Model.ProcessingAnalyses</strong>
             <p>Em andamento</p>
         </div>
 
         <div class="summary-card">
             <span>Analisadas</span>
-            <strong>@Model.CompletedAnalyses</strong>
+            <strong id="dashboard-completed">@Model.CompletedAnalyses</strong>
             <p>Relatórios disponíveis</p>
         </div>
 
         <div class="summary-card danger">
             <span>Erro</span>
-            <strong>@Model.FailedAnalyses</strong>
+            <strong id="dashboard-failed">@Model.FailedAnalyses</strong>
             <p>Falhas encontradas</p>
         </div>
     </div>
@@ -62,13 +78,13 @@
             </div>
         </div>
 
-        <div class="analysis-list">
+        <div class="analysis-list" id="dashboard-analysis-list">
             @if (Model.RecentAnalyses.Count == 0)
             {
-                <div class="analysis-row">
+                <div class="analysis-row analysis-row-empty">
                     <div class="analysis-info">
                         <strong>Nenhuma análise encontrada</strong>
-                        <span>Envie um diagrama para iniciar o pipeline.</span>
+                        <span>Envie um diagrama para iniciar o processamento.</span>
                     </div>
                 </div>
             }
@@ -76,30 +92,333 @@
             {
                 @foreach (var analysis in Model.RecentAnalyses)
                 {
-                    <div class="analysis-row">
+                    <article class="analysis-row" data-analysis-id="@analysis.Id">
+                        <a href="@analysis.DetailUrl" class="analysis-row-link" aria-label="Ver detalhes da análise @analysis.FileName"></a>
+
                         <div class="analysis-info">
                             <strong>@analysis.FileName</strong>
-                            <span>Enviado em @analysis.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") • @analysis.ContentType</span>
+                            <span>@BuildAnalysisSubtitle(analysis)</span>
                         </div>
 
                         <div class="analysis-meta">
                             <span class="status-pill @analysis.StatusCssClass">@analysis.Status</span>
-                            @if (analysis.HasReport)
+
+                            @if (analysis.HasReport && !string.IsNullOrWhiteSpace(analysis.ReportUrl))
                             {
-                                <a asp-controller="Reports" asp-action="Details" asp-route-analysisId="@analysis.Id" class="link">
-                                    Ver relatório →
-                                </a>
-                            }
-                            else
-                            {
-                                <a asp-controller="Analyses" asp-action="Details" asp-route-id="@analysis.Id" class="link">
-                                    Ver detalhes →
+                                <a href="@analysis.ReportUrl" class="link analysis-report-link">
+                                    Ver relatório &rarr;
                                 </a>
                             }
                         </div>
-                    </div>
+                    </article>
                 }
             }
         </div>
     </div>
 </section>
+
+<script id="dashboard-bootstrap" type="application/json">@Html.Raw(dashboardPayload)</script>
+
+@section Scripts {
+    <script>
+        (() => {
+            const root = document.getElementById("dashboard-root");
+            const bootstrap = document.getElementById("dashboard-bootstrap");
+
+            if (!root || !bootstrap) {
+                return;
+            }
+
+            const listUrl = root.dataset.analysesUrl;
+            const pendingStatusUrl = root.dataset.pendingStatusUrl;
+
+            if (!listUrl || !pendingStatusUrl) {
+                return;
+            }
+
+            const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            const summaryElements = {
+                total: document.getElementById("dashboard-total"),
+                processing: document.getElementById("dashboard-processing"),
+                completed: document.getElementById("dashboard-completed"),
+                failed: document.getElementById("dashboard-failed")
+            };
+
+            const listElement = document.getElementById("dashboard-analysis-list");
+
+            if (!listElement) {
+                return;
+            }
+
+            let dashboardData = JSON.parse(bootstrap.textContent ?? "{}");
+            let pendingIntervalId = null;
+            let refreshIntervalId = null;
+            let isRefreshingList = false;
+            let isRefreshingPendingStatuses = false;
+
+            function escapeHtml(value) {
+                return String(value ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll("\"", "&quot;")
+                    .replaceAll("'", "&#39;");
+            }
+
+            function formatAnalysisDate(value) {
+                if (!value) {
+                    return "";
+                }
+
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? "" : dateFormatter.format(date);
+            }
+
+            function buildAnalysisSubtitle(analysis) {
+                return `Enviado em ${formatAnalysisDate(analysis.createdAtUtc)} - ${analysis.contentType}`;
+            }
+
+            function buildAnalysisMarkup(analysis) {
+                const reportLink = analysis.hasReport && analysis.reportUrl
+                    ? `<a href="${escapeHtml(analysis.reportUrl)}" class="link analysis-report-link">Ver relatório &rarr;</a>`
+                    : "";
+
+                return `
+                    <article class="analysis-row" data-analysis-id="${escapeHtml(analysis.id)}">
+                        <a href="${escapeHtml(analysis.detailUrl)}" class="analysis-row-link" aria-label="Ver detalhes da analise ${escapeHtml(analysis.fileName)}"></a>
+                        <div class="analysis-info">
+                            <strong>${escapeHtml(analysis.fileName)}</strong>
+                            <span>${escapeHtml(buildAnalysisSubtitle(analysis))}</span>
+                        </div>
+                        <div class="analysis-meta">
+                            <span class="status-pill ${escapeHtml(analysis.statusCssClass)}">${escapeHtml(analysis.status)}</span>
+                            ${reportLink}
+                        </div>
+                    </article>
+                `;
+            }
+
+            function buildEmptyMarkup() {
+                return `
+                    <div class="analysis-row analysis-row-empty">
+                        <div class="analysis-info">
+                            <strong>Nenhuma analise encontrada</strong>
+                            <span>Envie um diagrama para iniciar o pipeline.</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderSummary(data) {
+                if (summaryElements.total) {
+                    summaryElements.total.textContent = String(data.totalAnalyses ?? 0);
+                }
+
+                if (summaryElements.processing) {
+                    summaryElements.processing.textContent = String(data.processingAnalyses ?? 0);
+                }
+
+                if (summaryElements.completed) {
+                    summaryElements.completed.textContent = String(data.completedAnalyses ?? 0);
+                }
+
+                if (summaryElements.failed) {
+                    summaryElements.failed.textContent = String(data.failedAnalyses ?? 0);
+                }
+            }
+
+            function renderAnalyses(data) {
+                const analyses = Array.isArray(data.recentAnalyses) ? data.recentAnalyses : [];
+                listElement.innerHTML = analyses.length === 0
+                    ? buildEmptyMarkup()
+                    : analyses.map(buildAnalysisMarkup).join("");
+            }
+
+            function renderDashboard(data) {
+                renderSummary(data);
+                renderAnalyses(data);
+            }
+
+            function hasPendingAnalyses(data) {
+                const analyses = Array.isArray(data.recentAnalyses) ? data.recentAnalyses : [];
+                return analyses.some((analysis) => analysis.statusCssClass === "received" || analysis.statusCssClass === "processing");
+            }
+
+            function getPendingAnalysisIds() {
+                const analyses = Array.isArray(dashboardData.recentAnalyses) ? dashboardData.recentAnalyses : [];
+                return analyses
+                    .filter((analysis) => analysis.statusCssClass === "received" || analysis.statusCssClass === "processing")
+                    .map((analysis) => analysis.id);
+            }
+
+            function createSnapshotSignature(data) {
+                const analyses = Array.isArray(data.recentAnalyses) ? data.recentAnalyses : [];
+                const itemSignature = analyses
+                    .map((analysis) => [
+                        analysis.id,
+                        analysis.statusCode,
+                        analysis.statusCssClass,
+                        analysis.hasReport,
+                        analysis.reportUrl ?? "",
+                        analysis.updatedAtUtc ?? "",
+                        analysis.completedAtUtc ?? "",
+                        analysis.failedAtUtc ?? ""
+                    ].join("|"))
+                    .join(";");
+
+                return [
+                    data.totalAnalyses ?? 0,
+                    data.processingAnalyses ?? 0,
+                    data.completedAnalyses ?? 0,
+                    data.failedAnalyses ?? 0,
+                    itemSignature
+                ].join("#");
+            }
+
+            function applyDashboardSnapshot(nextData) {
+                dashboardData = nextData;
+                renderDashboard(dashboardData);
+                syncPendingPolling();
+            }
+
+            function mergePendingStatuses(updatedAnalyses) {
+                if (!Array.isArray(updatedAnalyses) || updatedAnalyses.length === 0) {
+                    syncPendingPolling();
+                    return;
+                }
+
+                const currentAnalyses = Array.isArray(dashboardData.recentAnalyses) ? dashboardData.recentAnalyses : [];
+                const nextAnalyses = currentAnalyses.map((analysis) => {
+                    const updated = updatedAnalyses.find((item) => item.id === analysis.id);
+                    return updated ? updated : analysis;
+                });
+
+                const nextData = {
+                    ...dashboardData,
+                    recentAnalyses: nextAnalyses
+                };
+
+                nextData.processingAnalyses = nextAnalyses.filter((analysis) => analysis.statusCssClass === "received" || analysis.statusCssClass === "processing").length;
+                nextData.completedAnalyses = nextAnalyses.filter((analysis) => analysis.statusCssClass === "completed").length;
+                nextData.failedAnalyses = nextAnalyses.filter((analysis) => analysis.statusCssClass === "failed").length;
+
+                if (createSnapshotSignature(nextData) !== createSnapshotSignature(dashboardData)) {
+                    dashboardData = nextData;
+                    renderDashboard(dashboardData);
+                }
+
+                syncPendingPolling();
+            }
+
+            function stopPendingPolling() {
+                if (pendingIntervalId !== null) {
+                    window.clearInterval(pendingIntervalId);
+                    pendingIntervalId = null;
+                }
+            }
+
+            async function refreshPendingStatuses() {
+                const pendingIds = getPendingAnalysisIds();
+
+                if (pendingIds.length === 0) {
+                    stopPendingPolling();
+                    return;
+                }
+
+                if (isRefreshingPendingStatuses) {
+                    return;
+                }
+
+                isRefreshingPendingStatuses = true;
+
+                try {
+                    const response = await fetch(pendingStatusUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            analysisRequestIds: pendingIds
+                        })
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const updatedAnalyses = await response.json();
+                    mergePendingStatuses(updatedAnalyses);
+                } catch {
+                } finally {
+                    isRefreshingPendingStatuses = false;
+                }
+            }
+
+            function syncPendingPolling() {
+                if (!hasPendingAnalyses(dashboardData)) {
+                    stopPendingPolling();
+                    return;
+                }
+
+                if (pendingIntervalId !== null) {
+                    return;
+                }
+
+                pendingIntervalId = window.setInterval(refreshPendingStatuses, 5000);
+                void refreshPendingStatuses();
+            }
+
+            async function refreshAnalysesList() {
+                if (isRefreshingList) {
+                    return;
+                }
+
+                isRefreshingList = true;
+
+                try {
+                    const response = await fetch(listUrl, {
+                        method: "GET",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const nextData = await response.json();
+
+                    if (createSnapshotSignature(nextData) !== createSnapshotSignature(dashboardData)) {
+                        applyDashboardSnapshot(nextData);
+                    } else {
+                        syncPendingPolling();
+                    }
+                } catch {
+                } finally {
+                    isRefreshingList = false;
+                }
+            }
+
+            renderDashboard(dashboardData);
+            syncPendingPolling();
+            refreshIntervalId = window.setInterval(refreshAnalysesList, 60000);
+
+            window.addEventListener("beforeunload", () => {
+                stopPendingPolling();
+
+                if (refreshIntervalId !== null) {
+                    window.clearInterval(refreshIntervalId);
+                    refreshIntervalId = null;
+                }
+            });
+        })();
+    </script>
+}

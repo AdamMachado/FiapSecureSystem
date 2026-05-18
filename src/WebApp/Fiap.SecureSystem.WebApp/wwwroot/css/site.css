@@ -11,7 +11,7 @@
     --text-primary: #ffffff;
     --text-secondary: #9ca3af;
     --text-muted: #6b7280;
-    --border: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.2);
     --border-strong: rgba(255, 45, 117, 0.35);
     --radius-sm: 10px;
     --radius-md: 16px;
@@ -55,15 +55,17 @@ a {
     border-bottom: 1px solid var(--border);
     background: rgba(8, 11, 18, 0.88);
     backdrop-filter: blur(16px);
+    height: 60px;
 }
 
 .app-navbar {
-    min-height: 76px;
+    height: 60px;
     width: min(1240px, calc(100% - 48px));
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-sizing: border-box;
 }
 
 .app-brand {
@@ -72,8 +74,24 @@ a {
     gap: 14px;
     color: var(--text-primary);
     text-decoration: none;
-    font-weight: 800;
-    letter-spacing: 0.02em;
+}
+
+.header-title {
+    font-size: 1.1rem;
+}
+
+.brand-text {
+    font-weight: 600;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+}
+
+.highlighted-text {
+    color: var(--primary);
+    font-weight: 500;
+    letter-spacing: 0px;
+    font-size: 1.3rem;
 }
 
     .app-brand:hover {
@@ -81,9 +99,13 @@ a {
     }
 
 .app-logo {
-    width: 96px;
-    height: auto;
-    filter: drop-shadow(0 0 16px rgba(255, 45, 117, 0.35));
+    width: 55px;
+    height: 55px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-image: url("/images/logo.png"); 
+    filter: drop-shadow(0 0 16px rgba(255, 45, 117, 0.4));
 }
 
 .app-nav-links {
@@ -104,11 +126,12 @@ a {
 
 .app-main {
     width: min(1180px, calc(100% - 48px));
-    min-height: calc(100vh - 138px);
+    min-height: calc(100vh - 120px);
     margin: 0 auto;
 }
 
 .app-footer {
+    height: 60px;
     width: min(1240px, calc(100% - 48px));
     margin: 0 auto;
     border-top: 1px solid var(--border);
@@ -134,18 +157,25 @@ a {
     border-radius: var(--radius-sm);
     text-decoration: none;
     font-weight: 800;
-    border: 1px solid transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
 }
 
     .app-btn:hover {
         transform: translateY(-1px);
     }
+/*
+    .app-btn:hover{
+        background-color: var(--text-primary);
+        color: var(--bg-primary);
+    }*/
 
-.app-btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    color: #ffffff;
-    box-shadow: var(--shadow-glow);
-}
+    .app-btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: #ffffff;
+        box-shadow: var(--shadow-glow);
+        border: 2px solid transparent;
+    }
 
     .app-btn-primary:hover {
         color: #ffffff;
@@ -321,63 +351,43 @@ a {
    RESPONSIVE
 ========================= */
 
-@media (max-width: 992px) {
-    .hero {
-        grid-template-columns: 1fr;
-        gap: 44px;
-        padding: 48px 0;
-    }
-
-    .hero-right {
-        justify-content: flex-start;
-    }
-
-    .status-card {
-        max-width: 100%;
-    }
-}
-
 @media (max-width: 768px) {
+    .app-header,
+    .app-navbar{
+        height: auto;
+    }
+
     .app-navbar {
         width: min(100% - 32px, 1240px);
         min-height: auto;
-        padding: 18px 0;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .app-nav-links {
-        gap: 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .app-main {
-        width: min(100% - 32px, 1180px);
-    }
-
-    .app-footer {
-        width: min(100% - 32px, 1240px);
+        padding: 5px 0 12px 0;
         flex-direction: column;
         gap: 8px;
-        text-align: center;
     }
 
-    .hero {
-        min-height: auto;
-        padding: 40px 0;
+    .app-logo {
+        width: 45px;
+        height: 45px;
     }
 
-    .img-outdoor {
-        width: 120px;
-    }
+        .app-nav-links {
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-    .actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
+        .app-main {
+            width: min(100% - 32px, 1180px);
+        }
 
-    .app-btn {
-        width: 100%;
-    }
+        .app-footer {
+            width: min(100% - 32px, 1240px);
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .app-btn {
+            width: 100%;
+        }
 }
