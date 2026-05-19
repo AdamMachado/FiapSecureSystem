@@ -1,0 +1,20 @@
+@model IEnumerable<ToastMessageViewModel>
+@using System.Text.Json
+
+@{
+    var toastMessages = Model?
+        .Where(message => !string.IsNullOrWhiteSpace(message.Message))
+        .ToArray() ?? [];
+}
+
+@if (toastMessages.Length > 0)
+{
+    <script type="application/json" class="app-toast-bootstrap">
+        @Html.Raw(JsonSerializer.Serialize(
+            toastMessages, 
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            }))
+    </script>
+}

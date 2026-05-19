@@ -61,6 +61,12 @@
         box-shadow: 0 0 25px var(--primary-glow);
     }
 
+    .dropzone.upload-highlight {
+        border-color: #f87171;
+        box-shadow: 0 0 0 0.25rem rgba(248, 113, 113, 0.2);
+        background: rgba(239, 68, 68, 0.08);
+    }
+
 .drop-content .icon {
     font-size: 40px;
 }
@@ -89,3 +95,19 @@
 .upload-actions {
     margin-top: 24px;
 }
+
+    .upload-actions .app-btn.is-disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        filter: saturate(0.4);
+    }
+
+    .upload-actions .app-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        filter: saturate(0.4);
+    }

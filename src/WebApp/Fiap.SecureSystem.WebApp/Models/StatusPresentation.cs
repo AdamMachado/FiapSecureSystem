@@ -26,6 +26,7 @@ public static class StatusPresentation
             "failed" => "Erro",
             "error" => "Erro",
             "processing" => "Processando",
+            "received" => "Recebido",
             "pending" => "Recebido",
             _ => string.IsNullOrWhiteSpace(status) ? "Desconhecido" : status
         };

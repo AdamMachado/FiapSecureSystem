@@ -36,9 +36,20 @@ public sealed class StubArchitectureAnalyzer : IArchitectureAnalyzer
             request.DiagramType,
             request.ContentType);
 
-        var result = CreateFakeResult(request);
+        string fileName = request.SourceFileName?.ToLower() ?? "";
 
-        await Task.Delay(15000, cancellationToken);
+        await Task.Delay(12000, cancellationToken);
+
+        if (fileName.StartsWith("error") || fileName.StartsWith("fail")) 
+        {
+            _logger.LogInformation(
+                "StubArchitectureAnalyzer throwing an error because of file name start matching with 'error' or 'fail'. FileName={FileName}",
+                request.SourceFileName);
+
+            throw new Exception("StubArchitectureAnalyzer throws an error when file name starts with 'error' or 'fail'");
+        }
+
+        var result = CreateFakeResult(request);
 
         //return Task.FromResult(result);
         return result;

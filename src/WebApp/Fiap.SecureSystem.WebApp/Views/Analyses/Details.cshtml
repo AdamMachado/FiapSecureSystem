@@ -43,17 +43,31 @@
             </div>
 
             <div class="timeline-step @((Model.StatusCssClass is "received" or "processing") ? "active" : "done")" id="timeline-processing-step">
-                <span><i class="fa-solid fa-spinner"></i></span>
+                <span><i class="fa-solid @(Model.StatusCssClass is "received" or "processing" ? "fa-spinner status-icon-spin" : "fa-check")" id="timeline-processing-icon"></i></span>
                 <div>
                     <strong>Processando</strong>
                     <p id="timeline-processing-text">@(Model.StartedAtUtc.HasValue ? $"Processamento iniciado em {Model.StartedAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}" : "Análise do diagrama em andamento")</p>
                 </div>
             </div>
 
-            <div class="timeline-step @((Model.StatusCssClass is "completed" or "failed") ? "done" : string.Empty)" id="timeline-finished-step">
-                <span><i class="fa-solid fa-clock"></i></span>
+            @{
+                string completedColorStatus = string.Empty;
+
+                switch (Model.StatusCssClass)
+                {
+                    case "completed" :
+                        completedColorStatus = "done";
+                        break;
+                    case "failed" :
+                        completedColorStatus = "failed";
+                        break;
+                }
+            }
+
+            <div class="timeline-step @(completedColorStatus)" id="timeline-finished-step">
+                <span><i class="fa-solid @(Model.StatusCssClass == "failed" ? "fa-xmark" : Model.StatusCssClass == "completed" ? "fa-check" : "fa-clock")" id="timeline-finished-icon"></i></span>
                 <div>
-                    <strong id="timeline-finished-title">@(Model.StatusCssClass == "failed" ? "Erro" : "Analisado")</strong>
+                    <strong id="timeline-finished-title">@(Model.StatusCode == "failed" ? "Falha" : "Analisado")</strong>
                     <p id="timeline-finished-text">
                         @if (Model.CompletedAtUtc.HasValue)
                         {
@@ -109,9 +123,7 @@
 
             @if (TempData["DownloadReportError"] is string downloadReportError)
             {
-                <div class="alert alert-warning" role="alert">
-                    @downloadReportError
-                </div>
+                <partial name="_ToastMessages" model="@(new[] { new ToastMessageViewModel { Type = "warning", Message = downloadReportError, IsSticky = true } })" />
             }
 
             <div class="report-actions" id="analysis-report-actions">
@@ -198,8 +210,10 @@
                 statusPill: document.getElementById("analysis-status-pill"),
                 failureReason: document.getElementById("analysis-failure-reason"),
                 processingStep: document.getElementById("timeline-processing-step"),
+                processingIcon: document.getElementById("timeline-processing-icon"),
                 processingText: document.getElementById("timeline-processing-text"),
                 finishedStep: document.getElementById("timeline-finished-step"),
+                finishedIcon: document.getElementById("timeline-finished-icon"),
                 finishedTitle: document.getElementById("timeline-finished-title"),
                 finishedText: document.getElementById("timeline-finished-text"),
                 reportDescription: document.getElementById("analysis-report-description"),
@@ -231,6 +245,24 @@
 
             function isActiveStatus(model) {
                 return model.statusCssClass === "received" || model.statusCssClass === "processing";
+            }
+
+            function getProcessingIconClass(model) {
+                return isActiveStatus(model)
+                    ? "fa-solid fa-spinner status-icon-spin"
+                    : "fa-solid fa-check";
+            }
+
+            function getFinishedIconClass(model) {
+                if (model.statusCssClass === "failed") {
+                    return "fa-solid fa-xmark";
+                }
+
+                if (model.statusCssClass === "completed") {
+                    return "fa-solid fa-check";
+                }
+
+                return "fa-solid fa-clock";
             }
 
             function buildProcessingText(model) {
@@ -280,6 +312,37 @@
                 `;
             }
 
+            function handleChanges(newModel) {
+                console.log('handleChanges() - model:', state.model, ' newModel:', newModel);
+
+                console.log('previous status:', state.model.statusCode, ' new status:', newModel.statusCode);
+
+                if(state.model.statusCode != 'processing' && newModel.statusCode == 'processing'){
+                    let text = '<b>Processando</b> análise iniciada.';
+
+                    if(newModel.startedAtUtc)
+                        text += '<br/>Iniciado em ' + formatDate(newModel.startedAtUtc);
+
+                    window.appToast.info(text);
+                }
+                else if(state.model.statusCode != 'completed' && newModel.statusCode == 'completed'){
+                    let text = '<b>Concluído</b> análise finalizada.';
+
+                    if(newModel.completedAtUtc)
+                        text += '<br/>Concluído em ' + formatDate(newModel.completedAtUtc);
+
+                    window.appToast.success(text);
+                }
+                else if(state.model.statusCode != 'failed' && newModel.statusCode == 'failed'){
+                    let text = '<b>Erro</b> análise não finalizada.';
+
+                    if(newModel.failedAtUtc)
+                        text += '<br/>Falhou em ' + formatDate(newModel.failedAtUtc);
+
+                    window.appToast.error(text);
+                }
+            }
+
             function render(model) {
                 state.model = model;
 
@@ -316,7 +379,11 @@
                 }
 
                 if (elements.processingStep) {
-                    elements.processingStep.className = `timeline-step ${(model.statusCssClass === "received" || model.statusCssClass === "processing") ? "active" : "done"}`.trim();
+                    elements.processingStep.className = `timeline-step ${(model.statusCssClass === "completed" || model.statusCssClass === "failed") ? "done" : ""}`.trim();
+                }
+
+                if (elements.processingIcon) {
+                    elements.processingIcon.className = getProcessingIconClass(model);
                 }
 
                 if (elements.processingText) {
@@ -324,11 +391,27 @@
                 }
 
                 if (elements.finishedStep) {
-                    elements.finishedStep.className = `timeline-step ${(model.statusCssClass === "completed" || model.statusCssClass === "failed") ? "done" : ""}`.trim();
+                    let finishedStepClass = 'timeline-step ';
+
+                    if(model.statusCode == 'received' || model.statusCode == 'processing')
+                        finishedStepClass += 'active';
+                    else if(model.statusCode == 'completed')
+                        finishedStepClass += 'done';
+                    else if(model.statusCode == 'failed')
+                        finishedStepClass += 'done failed';
+
+                    elements.finishedStep.className = finishedStepClass;
+                }
+
+                if (elements.finishedIcon) {
+                    elements.finishedIcon.className = getFinishedIconClass(model);
                 }
 
                 if (elements.finishedTitle) {
-                    elements.finishedTitle.textContent = model.statusCssClass === "failed" ? "Erro" : "Analisado";
+                    if(model.statusCode == 'failed')
+                        elements.finishedTitle.textContent = "Falha";
+                    else
+                        elements.finishedTitle.textContent = "Analisado";
                 }
 
                 if (elements.finishedText) {
@@ -379,6 +462,7 @@
                     }
 
                     const nextModel = await response.json();
+                    handleChanges(nextModel);
                     render(nextModel);
                 } catch {
                 } finally {

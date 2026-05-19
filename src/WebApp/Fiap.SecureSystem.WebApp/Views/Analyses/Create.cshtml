@@ -17,9 +17,7 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger" role="alert">
-            @Model.ErrorMessage
-        </div>
+        <partial name="_ToastMessages" model="@(new[] { new ToastMessageViewModel { Type = "error", Message = Model.ErrorMessage!, IsSticky = true } })" />
     }
 
     <div class="upload-header">
@@ -52,7 +50,7 @@
         </div>
 
         <div class="upload-actions">
-            <button type="submit" class="app-btn app-btn-primary" id="submitButton">
+            <button type="submit" class="app-btn app-btn-primary is-disabled" id="submitButton" aria-disabled="true">
                 Enviar para Análise
             </button>
         </div>
@@ -71,9 +69,7 @@
 
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file) {
-                showFile(file);
-            }
+            updateSelectedFile(file);
         });
 
         dropzone.addEventListener('dragover', (e) => {
@@ -92,20 +88,74 @@
             const file = e.dataTransfer.files[0];
             input.files = e.dataTransfer.files;
 
-            if (file) {
-                showFile(file);
-            }
+            updateSelectedFile(file);
         });
 
-        uploadForm.addEventListener('submit', () => {
+        let isDelayedSubmit = false;
+
+        uploadForm.addEventListener('submit', (e) => {
+            if (isDelayedSubmit) {
+                return;
+            }
+
+            if (!input.files || input.files.length === 0) {
+                e.preventDefault();
+
+                window.appToast.warning('Nenhum arquivo selecionado para upload.');
+                highlightUploadSection();
+
+                return;
+            }
+
+            e.preventDefault();
+
             submitButton.disabled = true;
             submitButton.innerText = 'Enviando...';
+            window.appToast.info('Realizando envio do arquivo...');
+
+            setTimeout(() => {
+                isDelayedSubmit = true;
+                uploadForm.submit();
+            }, 300);
         });
+
+        function updateSelectedFile(file) {
+            if (file) {
+                showFile(file);
+                setSubmitEnabled(true);
+                clearUploadHighlight();
+                return;
+            }
+
+            preview.style.display = 'none';
+            fileName.innerText = '';
+            fileSize.innerText = '';
+            setSubmitEnabled(false);
+        }
 
         function showFile(file) {
             preview.style.display = 'block';
             fileName.innerText = file.name;
-            fileSize.innerText = (file.size / 1024 / 1024).toFixed(2) + " MB";
+
+            let fileSizeText = (file.size / 1024 / 1024).toFixed(2) + " MB"
+            fileSize.innerText = fileSizeText;
+
+            window.appToast.info('Arquivo selecionado<br/><b>Arquivo:</b> ' + file.name + '<br/><b>Tamanho:</b> ' + fileSizeText);
         }
+
+        function setSubmitEnabled(enabled) {
+            submitButton.classList.toggle('is-disabled', !enabled);
+            submitButton.setAttribute('aria-disabled', String(!enabled));
+        }
+
+        function highlightUploadSection() {
+            dropzone.classList.add('upload-highlight');
+        }
+
+        function clearUploadHighlight() {
+            dropzone.classList.remove('upload-highlight');
+        }
+
+        setSubmitEnabled(false);
     </script>
 }

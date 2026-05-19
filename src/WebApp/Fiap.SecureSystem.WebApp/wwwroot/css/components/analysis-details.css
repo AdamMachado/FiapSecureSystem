@@ -71,6 +71,10 @@
         justify-content: center;
     }
 
+        .timeline-step span i {
+            line-height: 1;
+        }
+
     .timeline-step.done {
         opacity: 1;
     }
@@ -79,6 +83,11 @@
             background: #22c55e;
             color: white;
         }
+
+    .timeline-step.failed span {
+        background: #c53a3a;
+        color: white;
+    }
 
     .timeline-step.active {
         opacity: 1;
@@ -90,6 +99,20 @@
             background: var(--primary);
             color: white;
         }
+
+.status-icon-spin {
+    animation: analysis-status-spin 1s linear infinite;
+}
+
+@keyframes analysis-status-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 .info-grid {
     display: grid;

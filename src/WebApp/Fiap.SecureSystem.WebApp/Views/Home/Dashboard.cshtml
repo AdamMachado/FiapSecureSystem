@@ -39,9 +39,7 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-warning" role="alert">
-            @Model.ErrorMessage
-        </div>
+        <partial name="_ToastMessages" model="@(new[] { new ToastMessageViewModel { Type = "warning", Message = Model.ErrorMessage!, IsSticky = true } })" />
     }
 
     <div class="summary-grid">
