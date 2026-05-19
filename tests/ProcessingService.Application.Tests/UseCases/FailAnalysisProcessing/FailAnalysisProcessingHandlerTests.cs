@@ -1,10 +1,9 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ProcessingService.Application.Abstractions.Clock;
 using ProcessingService.Application.Abstractions.Messaging;
 using ProcessingService.Application.Abstractions.Persistence;
-using ProcessingService.Application.UseCases.CompleteAnalysisProcessing;
 using ProcessingService.Application.UseCases.FailAnalysisProcessing;
 using ProcessingService.Domain.Entities;
 using ProcessingService.Domain.Enums;
@@ -12,11 +11,10 @@ using ProcessingService.Domain.Events;
 using ProcessingService.Domain.ValueObjects;
 using Shared.Contracts.IntegrationEvents.Abstractions;
 using System.Diagnostics;
-using Xunit;
 
 namespace ProcessingService.Application.Tests.UseCases.FailAnalysisProcessing;
 
-public sealed class CompleteAnalysisProcessingHandlerTests
+public sealed class FailAnalysisProcessingHandlerTests
 {
     private readonly Mock<IAnalysisProcessRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
@@ -63,8 +61,7 @@ public sealed class CompleteAnalysisProcessingHandlerTests
         var command = new FailAnalysisProcessingCommand(
             analysisRequestId,
             "AI error",
-            "details"
-        );
+            "details");
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
@@ -77,7 +74,6 @@ public sealed class CompleteAnalysisProcessingHandlerTests
 
         _repository.Verify(x => x.Update(process), Times.Once);
         _unitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-
         _eventPublisher.Verify(
             x => x.PublishAsync(It.IsAny<IntegrationEventBase>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -107,19 +103,22 @@ public sealed class CompleteAnalysisProcessingHandlerTests
     private static AnalysisProcess CreateProcess(Guid analysisRequestId)
     {
         var process = AnalysisProcess.Create(
-            id: Guid.NewGuid(),
-            analysisRequestId: AnalysisRequestId.Create(analysisRequestId),
-            requestedByUserId: Guid.NewGuid(),
-            sourceFileLocation: SourceFileLocation.Create("bucket", "file.pdf"),
-            diagramType: DiagramType.Pdf,
-            createdAtUtc: DateTime.UtcNow);
+            Guid.NewGuid(),
+            AnalysisRequestId.Create(analysisRequestId),
+            Guid.NewGuid(),
+            SourceFileLocation.Create("bucket", "file.pdf"),
+            DiagramType.Pdf,
+            DateTime.UtcNow);
 
         process.MarkAsStarted(DateTime.UtcNow);
 
         return process;
     }
+
     private sealed class FakeIntegrationEvent : IntegrationEventBase
     {
-        public FakeIntegrationEvent() : base(Guid.NewGuid(), null) { }
+        public FakeIntegrationEvent() : base(Guid.NewGuid(), null)
+        {
+        }
     }
 }
