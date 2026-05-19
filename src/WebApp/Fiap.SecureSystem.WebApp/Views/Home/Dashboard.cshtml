@@ -46,25 +46,25 @@
         <div class="summary-card">
             <span>Total</span>
             <strong id="dashboard-total">@Model.TotalAnalyses</strong>
-            <p>Análises criadas</p>
+            <p class="summary-label">Análises criadas</p>
         </div>
 
         <div class="summary-card">
             <span>Processando</span>
             <strong id="dashboard-processing">@Model.ProcessingAnalyses</strong>
-            <p>Em andamento</p>
+            <p class="summary-label">Em andamento</p>
         </div>
 
         <div class="summary-card">
             <span>Analisadas</span>
             <strong id="dashboard-completed">@Model.CompletedAnalyses</strong>
-            <p>Relatórios disponíveis</p>
+            <p class="summary-label">Relatórios disponíveis</p>
         </div>
 
         <div class="summary-card danger">
             <span>Erro</span>
             <strong id="dashboard-failed">@Model.FailedAnalyses</strong>
-            <p>Falhas encontradas</p>
+            <p class="summary-label">Falhas encontradas</p>
         </div>
     </div>
 

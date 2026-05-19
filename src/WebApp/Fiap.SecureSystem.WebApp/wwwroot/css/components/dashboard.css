@@ -157,19 +157,31 @@
     }
 
 @media (max-width: 992px) {
-    .summary-grid {
+    /*.summary-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
+    }*/
 
     .dashboard-header {
         align-items: flex-start;
         flex-direction: column;
     }
+
+    .summary-grid {
+        gap: 12px;
+    }
 }
 
 @media (max-width: 640px) {
     .summary-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .summary-grid {
+        gap: 8px;
+    }
+
+    .summary-label{
+        font-size: .85rem;
     }
 
     .analysis-row {

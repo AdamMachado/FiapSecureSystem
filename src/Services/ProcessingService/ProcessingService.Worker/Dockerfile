@@ -16,7 +16,7 @@ COPY ["src/Services/ProcessingService/ProcessingService.Worker/ProcessingService
 
 RUN dotnet restore "src/Services/ProcessingService/ProcessingService.Worker/ProcessingService.Worker.csproj"
 
-# Copia o restante do código
+# Copia o restante do cÃ³digo
 COPY . .
 
 WORKDIR /src/src/Services/ProcessingService/ProcessingService.Worker
@@ -32,6 +32,12 @@ RUN dotnet publish "ProcessingService.Worker.csproj" \
 # =========================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=America/Sao_Paulo
 
 COPY --from=build /app/publish .
 

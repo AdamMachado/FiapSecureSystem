@@ -21,7 +21,12 @@ RUN dotnet publish "Fiap.SecureSystem.WebApp.csproj" -c Release -o /app/publish 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_URLS=http://+:8080
+ENV TZ=America/Sao_Paulo
 
 EXPOSE 8080
 
