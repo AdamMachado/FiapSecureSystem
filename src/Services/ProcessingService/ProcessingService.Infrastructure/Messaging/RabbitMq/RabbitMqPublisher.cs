@@ -19,27 +19,28 @@ public sealed class RabbitMqPublisher : IEventPublisher
 {
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonSerializerOptions();
 
-    private readonly RabbitMqChannel _rabbitMqChannel;
+    private readonly RabbitMqPublisherChannel _publisherChannel;
     private readonly ILogger<RabbitMqPublisher> _logger;
     private readonly ActivitySource _activitySource;
+    private readonly SemaphoreSlim _publishLock = new(1, 1);
 
     public RabbitMqPublisher(
-        RabbitMqChannel rabbitMqChannel,
+        RabbitMqPublisherChannel publisherChannel,
         ILogger<RabbitMqPublisher> logger,
         ActivitySource activitySource)
     {
-        _rabbitMqChannel = rabbitMqChannel;
+        _publisherChannel = publisherChannel;
         _logger = logger;
         _activitySource = activitySource;
 
-        _rabbitMqChannel.Channel.BasicReturnAsync += OnBasicReturnAsync;
+        _publisherChannel.Channel.BasicReturnAsync += OnBasicReturnAsync;
     }
 
     public async Task PublishAsync(
         IntegrationEventBase integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        var channel = _rabbitMqChannel.Channel;
+        var channel = _publisherChannel.Channel;
         var exchange = ResolveExchange(integrationEvent);
         var routingKey = ResolveRoutingKey(integrationEvent);
 
@@ -85,13 +86,23 @@ public sealed class RabbitMqPublisher : IEventPublisher
 
             properties.InjectTraceContext(activity);
 
-            await channel.BasicPublishAsync(
-                exchange: exchange,
-                routingKey: routingKey,
-                mandatory: true,
-                basicProperties: properties,
-                body: body,
-                cancellationToken: cancellationToken);
+            await _publishLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                await channel.BasicPublishAsync(
+                    exchange: exchange,
+                    routingKey: routingKey,
+                    mandatory: true,
+                    basicProperties: properties,
+                    body: body,
+                    cancellationToken: cancellationToken);
+            }
+            finally
+            {
+                _publishLock.Release();
+            }
+
             activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
@@ -117,6 +128,7 @@ public sealed class RabbitMqPublisher : IEventPublisher
     {
         return integrationEvent switch
         {
+            AnalysisExecutionRequestedIntegrationEvent => ExchangeNames.Analysis,
             AnalysisStartedIntegrationEvent => ExchangeNames.Analysis,
             AnalysisCompletedIntegrationEvent => ExchangeNames.Analysis,
             AnalysisFailedIntegrationEvent => ExchangeNames.Analysis,
@@ -128,6 +140,7 @@ public sealed class RabbitMqPublisher : IEventPublisher
     {
         return integrationEvent switch
         {
+            AnalysisExecutionRequestedIntegrationEvent => RoutingKeys.AnalysisExecutionRequested,
             AnalysisStartedIntegrationEvent => RoutingKeys.AnalysisStarted,
             AnalysisCompletedIntegrationEvent => RoutingKeys.AnalysisCompleted,
             AnalysisFailedIntegrationEvent => RoutingKeys.AnalysisFailed,

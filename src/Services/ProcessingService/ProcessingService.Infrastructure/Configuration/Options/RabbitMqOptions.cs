@@ -12,6 +12,7 @@ public sealed class RabbitMqOptions
     public string ClientProvidedName { get; init; } = "processing-service";
     public bool UseSsl { get; init; }
     public ushort PrefetchCount { get; init; } = 5;
+    public ushort AnalysisExecutionMaxConcurrency { get; init; } = 1;
     public int MaxRetryCount { get; init; } = 3;
     public int RetryDelayMilliseconds { get; init; } = 30000;
 }

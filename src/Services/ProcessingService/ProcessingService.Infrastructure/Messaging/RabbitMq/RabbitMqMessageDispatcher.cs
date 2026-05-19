@@ -40,7 +40,10 @@ public sealed class RabbitMqMessageDispatcher
         _activitySource = activitySource;
     }
 
-    public AsyncEventHandler<BasicDeliverEventArgs> CreateHandler(RabbitMqConsumerDescriptor descriptor)
+    public AsyncEventHandler<BasicDeliverEventArgs> CreateHandler(
+        IChannel channel,
+        SemaphoreSlim channelCommandLock,
+        RabbitMqConsumerDescriptor descriptor)
     {
         _logger.LogInformation(
             "Creating RabbitMQ message handler. Queue: {QueueName}, RoutingKey: {RoutingKey}, MessageType: {MessageType}",
@@ -51,8 +54,6 @@ public sealed class RabbitMqMessageDispatcher
         return async (_, args) =>
         {
             using var scope = _serviceProvider.CreateScope();
-
-            var channel = scope.ServiceProvider.GetRequiredService<RabbitMqChannel>().Channel;
             var propagationContext = args.BasicProperties.ExtractTraceContext();
             var previousBaggage = Baggage.Current;
             Baggage.Current = propagationContext.Baggage;
@@ -105,9 +106,18 @@ public sealed class RabbitMqMessageDispatcher
                     integrationEvent,
                     CancellationToken.None);
 
-                await channel.BasicAckAsync(
-                    args.DeliveryTag,
-                    multiple: false);
+                await channelCommandLock.WaitAsync();
+
+                try
+                {
+                    await channel.BasicAckAsync(
+                        args.DeliveryTag,
+                        multiple: false);
+                }
+                finally
+                {
+                    channelCommandLock.Release();
+                }
 
                 _logger.LogInformation(
                     "Successfully handled RabbitMQ message. Queue: {QueueName}, RoutingKey: {RoutingKey}, Type: {MessageType}",
@@ -141,25 +151,43 @@ public sealed class RabbitMqMessageDispatcher
 
                 if (deathCount >= maxRetryCount)
                 {
-                    await PublishToDeadLetterQueueAsync(
-                        channel,
-                        descriptor,
-                        args,
-                        ex);
+                    await channelCommandLock.WaitAsync();
 
-                    await channel.BasicAckAsync(
-                        args.DeliveryTag,
-                        multiple: false);
+                    try
+                    {
+                        await PublishToDeadLetterQueueAsync(
+                            channel,
+                            descriptor,
+                            args,
+                            ex);
+
+                        await channel.BasicAckAsync(
+                            args.DeliveryTag,
+                            multiple: false);
+                    }
+                    finally
+                    {
+                        channelCommandLock.Release();
+                    }
 
                     activity?.SetTag("messaging.rabbitmq.dead_lettered", true);
                     activity?.SetTag("messaging.rabbitmq.ack", true);
                     return;
                 }
 
-                await channel.BasicNackAsync(
-                    args.DeliveryTag,
-                    multiple: false,
-                    requeue: false);
+                await channelCommandLock.WaitAsync();
+
+                try
+                {
+                    await channel.BasicNackAsync(
+                        args.DeliveryTag,
+                        multiple: false,
+                        requeue: false);
+                }
+                finally
+                {
+                    channelCommandLock.Release();
+                }
 
                 _logger.LogWarning(
                     "RabbitMQ message has been negatively acknowledged and will be requeued by RabbitMQ. Queue: {QueueName}, RoutingKey: {RoutingKey}, Type: {MessageType}",

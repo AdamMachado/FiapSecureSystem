@@ -98,10 +98,16 @@ public static class DependencyInjection
             };
         });
 
-        services.AddSingleton<RabbitMqChannel>(sp =>
+        services.AddSingleton<RabbitMqConnection>(sp =>
         {
             var factory = sp.GetRequiredService<ConnectionFactory>();
-            return RabbitMqChannel.CreateAsync(factory).GetAwaiter().GetResult();
+            return RabbitMqConnection.CreateAsync(factory).GetAwaiter().GetResult();
+        });
+
+        services.AddSingleton<RabbitMqPublisherChannel>(sp =>
+        {
+            var connection = sp.GetRequiredService<RabbitMqConnection>();
+            return RabbitMqPublisherChannel.CreateAsync(connection.Connection).GetAwaiter().GetResult();
         });
 
         services.AddSingleton<RabbitMqMessageDispatcher>();
