@@ -63,9 +63,10 @@ public static class DependencyInjection
         services.AddScoped<IAnalysisRequestRepository, AnalysisRequestRepository>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
+        services.AddHttpContextAccessor();
         services.AddSingleton<IStorageObjectKeyFactory, StorageObjectKeyFactory>();
         services.AddSingleton<IUploadPolicy, UploadPolicy>();
-        services.AddSingleton<IUserContext, StubUserContext>();
+        services.AddScoped<IUserContext, HttpUserContext>();
 
         services.AddSingleton(sp =>
         {
