@@ -8,7 +8,7 @@ namespace IdentityService.Application.UseCases.Register;
 public sealed class RegisterHandler
 {
     private static readonly IReadOnlyCollection<string> DefaultRoles = ["Analyst"];
-    private static readonly IReadOnlyCollection<string> DefaultScopes = ["analysis.read", "report.read"];
+    private static readonly IReadOnlyCollection<string> DefaultScopes = ["analysis.read", "analysis.write", "report.read"];
 
     private readonly IUserCredentialStore _userCredentialStore;
     private readonly IPasswordHasher _passwordHasher;
